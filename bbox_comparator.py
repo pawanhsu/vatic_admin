@@ -115,7 +115,7 @@ def get_isolations(annotations_dict, frame, threshold):
 
 
 #Take the dictionary from different annotators and return the alert frames
-def get_alerts(annotations_dict):
+def get_alert(annotations_dict):
 
 
     def compare_num_objs():
@@ -150,14 +150,23 @@ def get_alerts(annotations_dict):
 
 
 
+    #print(annotations_dict.values())
+    min_frame = float("inf")
+    max_frame = 0
+    for annotations in annotations_dict.values():
+        frames = annotations.keys()
+        if frames:
+            min_frame = min(min_frame, min(frames))
+            max_frame = max(max_frame, max(frames))
 
-    min_frame = min([min(annotations.keys()) for annotations in annotations_dict.values()])
-    max_frame = max([max(annotations.keys()) for annotations in annotations_dict.values()])
+
     alert_frames = {}
-    for frame in range(min_frame, max_frame+1):
+    if min_frame < max_frame:
 
-        compare_num_objs()
-        compare_IOUs()
+        for frame in range(min_frame, max_frame+1):
+
+            compare_num_objs()
+            compare_IOUs()
 
 
 
