@@ -35,6 +35,31 @@ def parse_txt(file="sample_output.txt"):
 
     return annotations
 
+def report_annotation(annotation, filter = {}):
+
+    report = {"N_boxes":0, "N_frames": 0}
+    if filter:
+        report["N_frames"] = 0
+        offset = filter["offset"]
+        duration = filter["duration"]
+        period = filter["period"]
+        is_target = lambda frame: 0 <= (frame % period - offset) <= duration
+
+
+        for frame in annotation:
+            if not is_target(frame):
+                print(frame)
+                report["N_frames"] += 1
+                report["N_boxes"] += len(annotation[frame])
+
+    else:
+        
+        for frame in annotation:
+            if not is_target(frame):
+                print(frame)
+                report["N_frames"] += 1
+                report["N_boxes"] += len(annotation[frame])
+    return report
 
 
 

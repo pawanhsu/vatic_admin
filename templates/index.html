@@ -31,13 +31,20 @@
     {% endfor %}
   </select>
   </div>
-<div id='img-wrapper'>
-  <img  id='alert-img' frame-num={{frame_num}} src={{img_url}}>
-  <p id='frame-num'>{{frame_num}}</p>
-</div>
+<div id="img-wrapper"  class="row">
+   <div class="col-md-6">
+  <img  id='alert-img' frame-num={{frame_num}} src={{img_url}}   style="float:left" >
+     </div>
+     <div id ="target-links" class="col-md-6">
+       {% for user, link in target_links %}
+       <a href={{link}}>{{user}}'s link</p>
+       {% endfor %}
+  </div>
 
+</div>
+  <p id='frame-num' >{{frame_num}}</p>
 <a id="next-button"><button> Next <span class="glyphicon glyphicon-forward"></span></button></a>
 <a id="previous-button"><button> Previous <span class="glyphicon glyphicon-backward"></span></button></a>
-
+<p id="alert-info">{{alert}}</p>
 </body>
 </html>

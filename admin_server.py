@@ -14,10 +14,11 @@ from urllib import urlencode
 
 
 
-CONTAINER_NAME = "cocky_kare"
+CONTAINER_NAME = "small_swirles"
+K_FRAME = 322
+VATIC_ADDRESS = "http://0.0.0.0:8889"
 
-
-list_videos_cmd = "docker exec amazing_booth /bin/sh -c 'cd /root/vatic; turkic list'"
+#list_videos_cmd = "docker exec amazing_booth /bin/sh -c 'cd /root/vatic; turkic list'"
 
 
 def get_videos():
@@ -27,12 +28,79 @@ def get_videos():
     print(" ".join(cmd))
     return check_output(cmd).strip().split("\n")
 
+
+
+
+
+
+
+
+
+
+
+
 def get_assignments():
     vatic_path = "/root/vatic"
     inside_cmd = 'cd {}; turkic list'.format(vatic_path)
     cmd = ['docker', 'exec', CONTAINER_NAME, "/bin/bash", '-c', inside_cmd]
+
     print(" ".join(cmd))
+
     return check_output(cmd).strip().replace(" ","").split("\n")
+
+def get_urls():
+    vatic_path = "/root/vatic"
+    inside_cmd = 'cd {}; turkic publish --offline'.format(vatic_path)
+    cmd = ['docker', 'exec', CONTAINER_NAME, "/bin/bash", '-c', inside_cmd]
+    print(" ".join(cmd))
+    return check_output(cmd).strip().split("\n")
+
+#!!!We assume there is only one video name in here!!!
+def get_user_map():
+    assignments = get_assignments()
+    users = []
+    for assignment in assignments:
+        pivot = assignment.find("_")
+        user = assignment[:pivot]
+        users.append(user)
+
+    urls = get_urls()
+
+    K = len(urls) / len(users)
+
+    user_map = {}
+
+    for i, user in enumerate(users):
+        user_map[user] = urls[ i*K:(i+1)*K]
+
+    return user_map
+
+
+#!!!We assume there is only one video name in here!!!
+def get_target_links(video_name, frame_num, alert):
+    N_segment = frame_num / K_FRAME
+    OFFSET_segment = frame_num
+
+    links = []
+
+    #Ignore specific alert isolation_info
+    for user in user_map:
+
+
+        pivot = user_map[user][N_segment].find("?")
+        print(pivot)
+        base_link = "{}/{}".format(VATIC_ADDRESS, user_map[user][N_segment][pivot:])
+
+        final_link = "{}&frame={}".format(base_link, OFFSET_segment)
+        links.append((user, final_link))
+    return links
+
+
+
+
+
+
+
 
 
 
@@ -206,11 +274,14 @@ def previous_alert():
 
         img_url = get_img_url(video_name, previous_frame)
         #dom = " <img  id='alert-img' frame-num={{frame_num}} src={{img_url}}>"
+        alert=alerts[video_name].get(previous_frame ,[])
+        target_links = get_target_links(video_name, previous_frame, alert)
+
 
 
         #response = render_template_string(dom, frame_num=frame_num, img_url=img_url)
         #response = {"img_url": img_url, "frame_num": next_frame}
-    return jsonify(img_url=img_url, frame_num=previous_frame)
+    return jsonify(img_url=img_url, frame_num=previous_frame, alert=alert, target_links=target_links)
 
 
 
@@ -227,11 +298,13 @@ def next_alert():
 
         img_url = get_img_url(video_name, next_frame)
         #dom = " <img  id='alert-img' frame-num={{frame_num}} src={{img_url}}>"
+        alert=alerts[video_name].get(next_frame ,[])
+        target_links = get_target_links(video_name, next_frame, alert)
 
 
         #response = render_template_string(dom, frame_num=frame_num, img_url=img_url)
         #response = {"img_url": img_url, "frame_num": next_frame}
-    return jsonify(img_url=img_url, frame_num=next_frame)
+    return jsonify(img_url=img_url, frame_num=next_frame, alert= alert, target_links=target_links)
 
 
 @app.route('/')
@@ -253,10 +326,13 @@ def index():
     #img_data = urlencode({"video_name":"jacksonhole.mp4", "frame_num":100})
     img_url = get_img_url(video_name, frame_num)
     print(img_url)
+    alert = alerts[video_name].get(frame_num, [])
+    target_links = get_target_links(video_name, frame_num, alert)
 
 
 
-    return render_template('index.html', alerts=alerts, img_url=img_url, videos=videos,frame_num=frame_num)
+    return render_template('index.html', alerts=alerts, img_url=img_url, videos=videos,frame_num=frame_num,\
+    target_links=target_links, alert=alert)
 
 
 
@@ -273,5 +349,8 @@ if __name__ == "__main__":
             workers.add(worker_name)
     color_map = get_color_map(workers)
 
+    assignments = get_assignments()
+    urls = get_urls()
+    user_map = get_user_map()
 
     app.run(host='0.0.0.0',debug=True)
