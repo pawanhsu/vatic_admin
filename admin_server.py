@@ -1,6 +1,6 @@
 import os
 from subprocess import check_output, call
-from flask import Flask, render_template, make_response, request, render_template_string, jsonify
+from flask import Flask, render_template, make_response, request, render_template_string, jsonify, redirect
 from scipy.misc import imread
 from matplotlib import pyplot as plt
 import uuid
@@ -11,29 +11,16 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 import requests
 from urllib import urlencode
+import json
 
 
 
-CONTAINER_NAME = "small_swirles"
-K_FRAME = 322
-VATIC_ADDRESS = "http://0.0.0.0:8889"
 
 #list_videos_cmd = "docker exec amazing_booth /bin/sh -c 'cd /root/vatic; turkic list'"
 
 
-def get_videos():
-    frames_path = "/root/vatic/data/frames_in"
-    inside_cmd = 'cd {}; ls'.format(frames_path)
-    cmd = ['docker', 'exec', CONTAINER_NAME, "/bin/bash", '-c', inside_cmd]
-    print(" ".join(cmd))
-    return check_output(cmd).strip().split("\n")
-
-
-
-
-
-
-
+def get_videos(user_map):
+    return user_map.values()[0].keys()
 
 
 
@@ -55,25 +42,8 @@ def get_urls():
     print(" ".join(cmd))
     return check_output(cmd).strip().split("\n")
 
-#!!!We assume there is only one video name in here!!!
-def get_user_map():
-    assignments = get_assignments()
-    users = []
-    for assignment in assignments:
-        pivot = assignment.find("_")
-        user = assignment[:pivot]
-        users.append(user)
 
-    urls = get_urls()
 
-    K = len(urls) / len(users)
-
-    user_map = {}
-
-    for i, user in enumerate(users):
-        user_map[user] = urls[ i*K:(i+1)*K]
-
-    return user_map
 
 
 #!!!We assume there is only one video name in here!!!
@@ -87,9 +57,9 @@ def get_target_links(video_name, frame_num, alert):
     for user in user_map:
 
 
-        pivot = user_map[user][N_segment].find("?")
-        print(pivot)
-        base_link = "{}/{}".format(VATIC_ADDRESS, user_map[user][N_segment][pivot:])
+        pivot = user_map[user][video_name][N_segment].find("?")
+        #print(pivot)
+        base_link = "{}/{}".format(VATIC_ADDRESS, user_map[user][video_name][N_segment][pivot:])
 
         final_link = "{}&frame={}".format(base_link, OFFSET_segment)
         links.append((user, final_link))
@@ -105,8 +75,8 @@ def get_target_links(video_name, frame_num, alert):
 
 
 
-def dump_data(output_dir="data/query"):
-    assignments = get_assignments()
+def dump_data(assignments, output_dir="data/query"):
+
     for assignment in assignments:
         vatic_path = "/root/vatic"
         output_path = "{}/{}.txt".format(output_dir, assignment)
@@ -117,9 +87,9 @@ def dump_data(output_dir="data/query"):
         call(cmd)
 
 
-def get_annotation_map():
+def get_annotation_map(assignments):
     annotation_map = {}
-    assignments = get_assignments()
+
     for assignment in assignments:
         annotation_file = "vatic-docker/data/query/{}.txt".format(assignment)
         pivot = assignment.find("_")
@@ -259,7 +229,12 @@ def get_previous_alert_frame(video_name, old_frame):
     return previous_frame
 
 
-
+def get_first_alert_frame(video_name):
+    target_frames = alerts[video_name].keys()
+    if len(target_frames):
+        return min(target_frames)
+    else:
+        return 0
 
 
 
@@ -267,7 +242,7 @@ def get_previous_alert_frame(video_name, old_frame):
 @app.route('/previous')
 def previous_alert():
     if request.method == 'GET':
-        video_name = "jacksonhole.mp4"
+        video_name = request.args['video']
         current_frame = int(request.args['frame'])
         previous_frame = get_previous_alert_frame(video_name, current_frame)
 
@@ -291,7 +266,8 @@ def previous_alert():
 @app.route('/next')
 def next_alert():
     if request.method == 'GET':
-        video_name = "jacksonhole.mp4"
+        video_name = request.args['video']
+        print(video_name)
         current_frame = int(request.args['frame'])
         next_frame = get_next_alert_frame(video_name, current_frame)
 
@@ -306,51 +282,71 @@ def next_alert():
         #response = {"img_url": img_url, "frame_num": next_frame}
     return jsonify(img_url=img_url, frame_num=next_frame, alert= alert, target_links=target_links)
 
+@app.route('/update')
+def update():
+    dump_data(assignments)
+    global annotation_map
+    global alerts
+    annotation_map = get_annotation_map(assignments)
+    alerts = get_alerts(annotation_map)
+    return redirect("./")
+
 
 @app.route('/')
 def index():
-    #video_name = "night_bridge_01.mpeg"
-    #frame_num = 179
-    #img_path = frame_to_path(video_name, frame_num)
-    #output_path = "static/images"
-    #boxes = []
-    #output_path = visualize_frame(video_name, frame_num, [])
+    videos = get_videos(user_map)
 
-    #remove the filename extnsion of each video:
-    videos = []
-    for video in get_videos():
-        pivot = video.find('.')
-        videos.append(video[:pivot])
-    video_name = "jacksonhole.mp4"
-    frame_num = 80
-    #img_data = urlencode({"video_name":"jacksonhole.mp4", "frame_num":100})
+    if "video_name" in request.args:
+        video_name = request.args['video_name']
+        videos.remove(video_name)
+        videos.insert(0, video_name)
+
+
+    else:
+        video_name = videos[0]
+
+    frame_num = get_first_alert_frame(video_name)
     img_url = get_img_url(video_name, frame_num)
     print(img_url)
     alert = alerts[video_name].get(frame_num, [])
     target_links = get_target_links(video_name, frame_num, alert)
 
 
-
     return render_template('index.html', alerts=alerts, img_url=img_url, videos=videos,frame_num=frame_num,\
-    target_links=target_links, alert=alert)
+        target_links=target_links, alert=alert)
 
 
 
-
-
+def get_assignments(user_map):
+    assignments = []
+    for user in user_map:
+        for video in user_map[user]:
+            assignment = "{}_{}".format(user, video)
+            assignments.append(assignment)
+    return assignments
 
 if __name__ == "__main__":
-    dump_data()
-    annotation_map = get_annotation_map()
+    CONTAINER_NAME = "naughty_minsky"
+    K_FRAME = 322
+    VATIC_ADDRESS = "http://0.0.0.0:8889"
+
+
+
+    user_map = json.load(open("vatic-docker/data/user_map.json"))
+
+    assignments = get_assignments(user_map)
+    dump_data(assignments)
+
+    annotation_map = get_annotation_map(assignments)
     alerts = get_alerts(annotation_map)
-    workers = set()
-    for video_name in annotation_map:
-        for worker_name in annotation_map[video_name].keys():
-            workers.add(worker_name)
+
+
+    workers = user_map.keys()
     color_map = get_color_map(workers)
 
-    assignments = get_assignments()
-    urls = get_urls()
-    user_map = get_user_map()
+
+    #user_map = get_user_map()
+
+
 
     app.run(host='0.0.0.0',debug=True)

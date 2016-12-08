@@ -3,12 +3,12 @@
   <title>Iron Yun Vatic Admin</title>
 
   </head>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/tether/1.3.7/js/tether.js"></script>
-  <link  rel= "stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tether/1.3.7/css/tether-theme-arrows-dark.css"</script>
-  <script  src="https://code.jquery.com/jquery-3.1.1.min.js" integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8="
+  <script src="//cdnjs.cloudflare.com/ajax/libs/tether/1.3.7/js/tether.js"></script>
+  <link  rel= "stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/tether/1.3.7/css/tether-theme-arrows-dark.css"</script>
+  <script  src="//code.jquery.com/jquery-3.1.1.min.js" integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8="
   crossorigin="anonymous"></script>
-  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
-  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" ></script>
+  <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+  <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" ></script>
 
   <script src="static/index.js"></script>
 
@@ -23,14 +23,18 @@
   <meta id="alerts" data-alerts="{{alerts}}" >
 
   <h1>Vatic Admin Prototype</h1>
-    <div class="row">
-  <select class="selectpicker">
 
-    {% for video in videos %}
-    <option>{{video}}</option>
-    {% endfor %}
-  </select>
+  <div class="row">
+    <select id="video-selection" class="selectpicker" onChange="window.document.location.href=this.options[this.selectedIndex].value;">
+      {% for video in videos %}
+        <option value="/?video_name={{video}}">{{video}}</option>
+      {% endfor %}
+    </select>
+    <a href="update"><button type="button" class="btn btn-primary">Update Annotations</button></a>
   </div>
+
+
+
 <div id="img-wrapper"  class="row">
    <div class="col-md-6">
   <img  id='alert-img' frame-num={{frame_num}} src={{img_url}}   style="float:left" >

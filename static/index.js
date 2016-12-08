@@ -19,10 +19,11 @@ function change_links (target_links){
 $(function() {
     $('#next-button').click(function() {
       var frame = parseInt($('#alert-img').attr("frame-num"));
+      var video = $("#video-selection").val().slice(13)
 
         $.ajax({
             url: '/next',
-            data:  {"frame":frame},
+            data:  {"frame":frame, "video":video},
             type: 'GET',
             success: function(response) {
               console.log(response);
@@ -60,10 +61,11 @@ $(function() {
 
     $('#previous-button').click(function() {
       var frame = parseInt($('#alert-img').attr("frame-num"));
+      var video_name = $("#video-selection").val().slice(13)
 
         $.ajax({
             url: '/previous',
-            data:  {"frame":frame},
+            data:  {"frame":frame, "video":video_name},
             type: 'GET',
             success: function(response) {
               console.log(response);
