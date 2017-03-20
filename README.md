@@ -1,2 +1,1 @@
-#This is the VATIC-ADMIN
-the 'bbox_comparator.py' is developing
+#VATIC-ADMIN is an extension for VATIC that helps you verify the difference of two or more worker on same video.
