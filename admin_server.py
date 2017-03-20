@@ -326,7 +326,7 @@ def get_assignments(user_map):
     return assignments
 
 if __name__ == "__main__":
-    CONTAINER_NAME = "naughty_minsky"
+    CONTAINER_NAME = "vatic"
     K_FRAME = 322
     VATIC_ADDRESS = "http://0.0.0.0:8889"
 
