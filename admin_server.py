@@ -544,7 +544,7 @@ def box_check():
             return jsonify(condition="successfully remove")
 
 
-\
+
 
 
 if __name__ == "__main__":
