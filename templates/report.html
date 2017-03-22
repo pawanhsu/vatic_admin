@@ -1,14 +1,8 @@
 <html>
-  {% for worker, color in color_map.items() %}
-    <meta class="worker-color" name={{worker}} content="{{color}}">
-  {%endfor%}
+  <head>
   <title>Iron Yun Vatic Admin</title>
 
-
-  <meta >
-
   </head>
-  <script src="https://d3js.org/d3.v4.min.js"></script>
   <script src="//cdnjs.cloudflare.com/ajax/libs/tether/1.3.7/js/tether.js"></script>
   <link  rel= "stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/tether/1.3.7/css/tether-theme-arrows-dark.css"</script>
   <script  src="//code.jquery.com/jquery-3.1.1.min.js" integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8="
@@ -16,9 +10,7 @@
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
 
-  <script src="static/index.js"></script>
-  <link  rel= "stylesheet" href="static/index.css"</script>
-
+  <script src="static/report.js"></script>
 
 
 
@@ -37,7 +29,7 @@
 <div class="row">  <div class="row"></div>
   <select id="video-selection" class="selectpicker" onChange="window.document.location.href=this.options[this.selectedIndex].value;">
     {% for video in videos %}
-      <option value="/?video_name={{video}}">{{video}}</option>
+      <option value="/report?video_name={{video}}">{{video}}</option>
     {% endfor %}
   </select>
   <a href="update"><button type="button" class="btn btn-primary">Update <span class="glyphicon glyphicon-repeat"></button></a>
@@ -47,16 +39,19 @@
 
 
 
+&nbsp;
+&nbsp;
+&nbsp;
+&nbsp;
+&nbsp;
+
 
 <div id="main-row"  class="row">
-  <div class="col-md-6" >
-  <div data-spy="affix" data-offset-top="50">
+  <div class="col-md-6">
     <h2 > <span class="label label-default"><strong>Frame:</strong> <strong id='frame-num'>{{frame_num}}</strong></span></h2>
-    <svg id = "alert-svg" frame-num="{{frame_num}}" width=100% height=50%>
 
-
-
-
+    <img  id='alert-img' frame-num={{frame_num}} src={{img_url}}   style="float:left" >
+    <div class="row"></div>
 
     <!--  Control Buttons -->
     <div id="buttons">
@@ -80,7 +75,7 @@
     {% if "wrong_number" in alert %}  <div class="row"></div>
         <h4>Wrong Number:</h4>
         <ul id="w-list" class="list-group">
-        {% for user in alert["wrong_number"]|sort %}
+        {% for user in alert["wrong_number"] %}
           <li class="list-group-item">
             <span class="badge">{{alert["wrong_number"][user]}}</span>
             {{user}}
@@ -95,7 +90,7 @@
 
         <h4>Isolation:</h4>
         <ul id="i-list" class="list-group">
-        {% for user in alert["isolation"]|sort %}
+        {% for user in alert["isolation"] %}
           <li class="list-group-item">
             <span class="badge">{{alert["isolation"]|length}}</span>
             {{user}}
@@ -104,61 +99,28 @@
         </ul>
       {% endif %}
     </div>
-
   </div>
   <!--  End of Alert Info -->
-</div>
+
 </div>
 
 
     <!--  Groupped Erros Info -->
 <div  id = "Errors-info "class="col-md-3">
   <h2> <span class="label label-danger">Errors</span></h2>
-  {% for worker in errors[video_name]|sort %}
-    <a href='#'  data-toggle="collapse" data-target="#{{worker}}" ><h3 class="worker-title">{{worker}} <span class="badge">{{errors[video_name][worker]|length}}</span>               <span class = "glyphicon glyphicon-collapse-down" /></h3> </a>
+  {% for worker in errors[video_name] %}
+    <a href='#'  data-toggle="collapse" data-target="#{{worker}}" ><h3>{{worker}} <span class = "glyphicon glyphicon-collapse-down" /></h3></a>
     <div id={{worker}} class="collapse" >
-
-      <table class="table table-hover">
-         <thead>
-           <tr>
-             <th>Type</th>
-             <th>Reference</th>
-             <th>Frame</th>
-             <th>Box</th>
-             <th>Check</th>
-
-           </tr>
-         </thead>
-         <tbody>
-        {%for error in errors[video_name][worker]%}
-
-
-          {% if error["type"] == "missing"%}
-              <tr box-id={{error["reference"] + "-" + error["box_id"]}}>
-              <td> <span class="label label-warning">少</span></td>
-          {%elif error["type"] == "surplus"%}
-              <tr box-id={{worker + "-" + error["box_id"]}}>
-              <td><span class="label label-info">多</span></td>
+      <ul class="list-group">
+        {%for error in errors[video_name][worker]["mixed"]%}
+          {% set box_id = error[2].split("_") %}
+          {% if error|length == 3 %}
+            <li class="list-group-item"><h3> <span class="label label-warning">少</span></h3><h4>  {{box_id[0]}}的box {{box_id[1]}}號  <a onclick='page_update_seek({{error[0]}})'>Frame {{error[0]}}</a>至 <a onclick='page_update_seek({{error[1]}})'>Frame {{error[1]}}</h4> </a><br></li>
+          {% elif error|length == 4 %}
+            <li class="list-group-item"><h3><span class="label label-info">多</span></h3><h4>比{{error[3]}}多了box {{box_id[1]}}號   <a onclick='page_update_seek({{error[0]}})'>Frame {{error[0]}}</a>至 <a  onclick='page_update_seek({{error[1]}})'>Frame {{error[1]}}</h4></a><br></li>
           {%endif%}
-              <td>{{error["reference"]}}</td>
-              <td><h4> <a onclick='page_update_seek({{error["start"]}})'>{{error["start"]}}</a> ➡ <a onclick='page_update_seek({{error["end"]}})'>{{error["end"]}}</h4></td>
-              <td>{{error["box_id"]}}</td>
-              {%set error_id=[video_name, worker, error["reference"], error["box_id"], error["type"], error["start"], error["end"]]|join("\t")%}
-
-              <td>
-                <div class="checkbox">
-                  {%if error_id in check_boxes%}
-                    <label><input type="checkbox" checked data-error="{{error_id}}" data-video={{video_name}} data-master={{worker}} data-reference={{error["reference"]}}  data-id={{error["box_id"]}} data-type={{error["type"]}} data-begin={{error["start"]}} data-end={{error["end"]}}></label>
-                  {%else%}
-                    <label><input type="checkbox" data-error="{{error_id}}" data-video={{video_name}} data-master={{worker}} data-reference={{error["reference"]}}  data-id={{error["box_id"]}} data-type={{error["type"]}} data-begin={{error["start"]}} data-end={{error["end"]}}></label>
-                  {%endif%}
-                </div>
-              </td>
-
-        </tr>
-        {%  endfor %}
-        </tbody>
-      </table>
+        {%endfor%}
+       </ul>
     </div>
  {% endfor %}
 </div>
@@ -174,15 +136,12 @@
  <!-- Target Links -->
 
 <div  class="col-md-3" style="text-align:left;">
-<div data-spy="affix" data-offset-top="50">
-
   <br>
   <ul id ="target-links" class="list-group">
     {% for user, link in target_links %}
       <li class="list-group-item"><a href={{link}}><h4>{{user}}'s Segment  <span class= "glyphicon glyphicon-hand-right" /> </h4></a></li>
     {% endfor %}
   </ul>
-</div>
 </div>
 
 <!-- End of Target Links -->
