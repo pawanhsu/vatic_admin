@@ -5,6 +5,16 @@
 
 ## To run the admin
 
+### get code
+
+```
+mkdir vatic 
+git clone git@bitbucket.org:ccha97u/vatic_admin.git
+cd vatic_admin
+git clone git@bitbucket.org:ccha97u/vatic-docker.git
+mkdir -p vatic-docker/data/query
+```
+
 ### virtualenv (option)
 
 Option - create virtual enviorment to avoid interference with different projects
@@ -24,6 +34,8 @@ pip install flask scipy pillow matplotlib requests tinydb
 ```
 
 ### run server
+
+before admin startup, startup vatic-docker first
 ```
 #!shell
 python admin_server.py
