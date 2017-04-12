@@ -460,7 +460,7 @@ def update():
     global alerts
     global errors
 
-    annotation_map = get_annotation_map(assignments,'"person"')
+    annotation_map = get_annotation_map(assignments)
     alerts = get_alerts(annotation_map)
     box_ID_map  = get_boxID_map(alerts, annotation_map, workers)
     errors = group_errors(box_ID_map, workers)

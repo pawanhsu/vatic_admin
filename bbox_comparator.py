@@ -195,14 +195,7 @@ def get_alert(annotations_dict):
             compare_num_objs()
             compare_IOUs()
 
-
-
-
     return alert_frames
-
-
-
-
 
 
 if __name__ == "__main__":

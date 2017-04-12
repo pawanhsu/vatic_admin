@@ -21,7 +21,6 @@
       $(document).ready(function(){
         $("#select_class").change(function(){
           var selected_class = $(this).val();
-          alert(selected_class)
 
           $.ajax({
             url: '/multiclass_filter',
@@ -47,14 +46,14 @@
 
 
 
-  <body style="margin:16px; padding:16px">
+<body style="margin:16px; padding:16px">
 
 <h1>Vatic Admin Prototype 2.0</h1>
 
 
 <!--   Select Picker for Video and Update Button -->
 <div class="row">  <div class="row"></div>
-  <select id="video-selection" class="selectpicker" onChange="window.document.location.href=this.options[this.selectedIndex].value;">
+  <select id="video-selection" class="selectpicker" style="height:35px;margin-left:15px" onChange="window.document.location.href=this.options[this.selectedIndex].value;">
     {% for video in videos %}
       <option value="/?video_name={{video}}">{{video}}</option>
     {% endfor %}
@@ -200,7 +199,6 @@
 
 <div  class="col-md-3" style="text-align:left;">
 <div data-spy="affix" data-offset-top="50">
-
   <br>
   <ul id ="target-links" class="list-group">
     {% for user, link in target_links %}
