@@ -1,23 +1,42 @@
 <html>
+  <head>
   {% for worker, color in color_map.items() %}
     <meta class="worker-color" name={{worker}} content="{{color}}">
   {%endfor%}
-  <title>Iron Yun Vatic Admin</title>
+    <title>Iron Yun Vatic Admin</title>
 
 
-  <meta >
+    <script src="https://d3js.org/d3.v4.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/tether/1.3.7/js/tether.js"></script>
+    <link  rel= "stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/tether/1.3.7/css/tether-theme-arrows-dark.css"</script>
+    <script  src="//code.jquery.com/jquery-3.1.1.min.js" integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8="
+    crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.0/jquery.min.js"></script>
+    <script src="static/index.js"></script>
+    <link  rel= "stylesheet" href="static/index.css"</script>
 
+    <script>
+      $(document).ready(function(){
+        $("#select_class").change(function(){
+          var selected_class = $(this).val();
+          alert(selected_class)
+
+          $.ajax({
+            url: '/multiclass_filter',
+            data: {
+              'selected_class': $(this).val()
+            },
+            success: function () {
+              location.reload();
+            }
+
+      });
+        });
+      });
+</script>
   </head>
-  <script src="https://d3js.org/d3.v4.min.js"></script>
-  <script src="//cdnjs.cloudflare.com/ajax/libs/tether/1.3.7/js/tether.js"></script>
-  <link  rel= "stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/tether/1.3.7/css/tether-theme-arrows-dark.css"</script>
-  <script  src="//code.jquery.com/jquery-3.1.1.min.js" integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8="
-  crossorigin="anonymous"></script>
-  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
- <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
-
-  <script src="static/index.js"></script>
-  <link  rel= "stylesheet" href="static/index.css"</script>
 
 
 
@@ -113,6 +132,12 @@
 
     <!--  Groupped Erros Info -->
 <div  id = "Errors-info "class="col-md-3">
+  <select class="form-control" id="select_class">
+    <option value = "all">all</option>
+    {%for class in label%}
+    <option value = '{{class.text}}'>{{class.text}}</option>
+    {%  endfor %}
+  </select>
   <h2> <span class="label label-danger">Errors</span></h2>
   {% for worker in errors[video_name]|sort %}
     <a href='#'  data-toggle="collapse" data-target="#{{worker}}" ><h3 class="worker-title">{{worker}} <span class="badge">{{errors[video_name][worker]|length}}</span>               <span class = "glyphicon glyphicon-collapse-down" /></h3> </a>

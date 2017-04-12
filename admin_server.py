@@ -19,7 +19,7 @@ from itertools import groupby
 from collections import OrderedDict
 from tinydb import TinyDB, Query
 from PIL import Image
-
+from dbio_Inf import *
 
 #list_videos_cmd = "docker exec amazing_booth /bin/sh -c 'cd /root/vatic; turkic list'"
 
@@ -106,7 +106,7 @@ def dump_data(assignments, output_dir="data/query"):
         call(cmd)
 
 
-def get_annotation_map(assignments):
+def get_annotation_map(assignments,selected_class="all"):
     annotation_map = {}
 
     for assignment in assignments:
@@ -116,7 +116,7 @@ def get_annotation_map(assignments):
         video_name = assignment[pivot+1:]
         if video_name not in annotation_map:
             annotation_map[video_name] = {}
-        annotation_map[video_name][worker_name] = parse_txt(annotation_file)
+        annotation_map[video_name][worker_name] = parse_txt(annotation_file,selected_class)
 
     return annotation_map
 
@@ -450,6 +450,8 @@ def next_alert():
         #response = {"img_url": img_url, "frame_num": next_frame}
     return jsonify(img_url=img_url, frame_num=next_frame, alert= alert, target_links=target_links)
 
+
+
 @app.route('/update')
 def update():
     assignments = get_assignments(user_map)
@@ -458,7 +460,7 @@ def update():
     global alerts
     global errors
 
-    annotation_map = get_annotation_map(assignments)
+    annotation_map = get_annotation_map(assignments,'"person"')
     alerts = get_alerts(annotation_map)
     box_ID_map  = get_boxID_map(alerts, annotation_map, workers)
     errors = group_errors(box_ID_map, workers)
@@ -467,7 +469,24 @@ def update():
     return redirect("./")
 
 
+@app.route('/multiclass_filter')
+def multiclass_filter():
+    assignments = get_assignments(user_map)
+    dump_data(assignments)
+    global annotation_map
+    global alerts
+    global errors
+    selected_class = request.args['selected_class']
+    if(selected_class != 'all'):
+        selected_class = '"' + selected_class + '"'
+    print(selected_class)
 
+    annotation_map = get_annotation_map(assignments,selected_class)
+    alerts = get_alerts(annotation_map)
+    box_ID_map  = get_boxID_map(alerts, annotation_map, workers)
+    errors = group_errors(box_ID_map, workers)
+
+    return redirect("./")
 
 
 @app.route('/')
@@ -495,8 +514,10 @@ def index():
         error_id = error_data["error_id"]
         check_boxes[error_id] = 1
 
+    label = session.query(Label).distinct(Label.text).group_by(Label.text)
 
-    return render_template('index.html', img_url=img_url, videos=videos,frame_num=frame_num,\
+
+    return render_template('index.html', label=label, img_url=img_url, videos=videos,frame_num=frame_num,\
         target_links=target_links, alert=alert, errors=errors, video_name=video_name, check_boxes=check_boxes, color_map=color_map)
 
 
@@ -548,7 +569,7 @@ def box_check():
 
 
 if __name__ == "__main__":
-    CONTAINER_NAME = "vatic"
+    CONTAINER_NAME = "vatic_beta"
     #CONTAINER_NAME = "angry_hawking"
     K_FRAME = 300
     OFFSET = 21
