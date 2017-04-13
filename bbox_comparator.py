@@ -1,6 +1,6 @@
 from __future__ import division
 #Read the bboxes txt file and return a dictionary
-def parse_txt(file="sample_output.txt"):
+def parse_txt(file="sample_output.txt", selected_class="all"):
 
     annotations = {}
 
@@ -18,12 +18,14 @@ def parse_txt(file="sample_output.txt"):
         outside = bool(int(outside))
         occu = bool(int(occu))
         auto = bool(int(auto))
-        label = label.replace('"', '')
+        #label = label.replace('"', '')
 
         #Ignoring occulusion or outside of the frame
         if occu or outside:
             continue
-
+        if(selected_class != 'all'):
+            if label != selected_class:
+                continue
         bbox_elements = ["xmin", "ymin", "xmax", "ymax", "outside", "occu", "auto", "label"]
         bbox = {}
         for key in bbox_elements:
@@ -53,7 +55,7 @@ def report_annotation(annotation, filter = {}):
                 report["N_boxes"] += len(annotation[frame])
 
     else:
-        
+
         for frame in annotation:
             if not is_target(frame):
                 print(frame)
@@ -193,14 +195,7 @@ def get_alert(annotations_dict):
             compare_num_objs()
             compare_IOUs()
 
-
-
-
     return alert_frames
-
-
-
-
 
 
 if __name__ == "__main__":
