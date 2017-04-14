@@ -19,7 +19,6 @@ from itertools import groupby
 from collections import OrderedDict
 from tinydb import TinyDB, Query
 from PIL import Image
-from dbio_Inf import *
 
 #list_videos_cmd = "docker exec amazing_booth /bin/sh -c 'cd /root/vatic; turkic list'"
 
@@ -126,8 +125,11 @@ def get_boxID_map(alerts,annotation_map, workers):
         box_ID_map[video_name] = {}
         for frame in alerts[video_name]:
             isolations = alerts[video_name][frame].get("isolation" ,{})
+            unmatchings = alerts[video_name][frame].get("wrong-class" ,{})
             for worker_A, isolation in isolations.items():
+                unmatching = unmatchings.get(worker_A ,{}).
                 for box_id_A, IOU_list in isolation.items():
+                    unmatching = unmatching.get(box_id_A, {})
                     box_A = annotation_map[video_name][worker_A][frame][box_id_A].copy()
                     box_A["matching"] = {}
                     for worker in workers:
@@ -135,8 +137,12 @@ def get_boxID_map(alerts,annotation_map, workers):
                             box_A["matching"][worker] = "owner"
                         elif worker in IOU_list:
                             box_A["matching"][worker] = "missing"
+                        elif worker in unmatching:
+                            box_A["matching"][worker] = "wrong_class"
                         else:
                             box_A["matching"][worker] = "matched"
+
+
                     new_box_id_A = "{}_{}".format(worker_A, box_id_A)
                     if new_box_id_A not in box_ID_map[video_name]:
                         box_ID_map[video_name][new_box_id_A] = {}
@@ -477,8 +483,7 @@ def multiclass_filter():
     global alerts
     global errors
     selected_class = request.args['selected_class']
-    if(selected_class != 'all'):
-        selected_class = '"' + selected_class + '"'
+
     print(selected_class)
 
     annotation_map = get_annotation_map(assignments,selected_class)
@@ -514,7 +519,7 @@ def index():
         error_id = error_data["error_id"]
         check_boxes[error_id] = 1
 
-    label = session.query(Label).distinct(Label.text).group_by(Label.text)
+    label = ['car' , 'person']
 
 
     return render_template('index.html', label=label, img_url=img_url, videos=videos,frame_num=frame_num,\
@@ -569,7 +574,7 @@ def box_check():
 
 
 if __name__ == "__main__":
-    CONTAINER_NAME = "vatic_beta"
+    CONTAINER_NAME = "vatic"
     #CONTAINER_NAME = "angry_hawking"
     K_FRAME = 300
     OFFSET = 21
