@@ -285,7 +285,20 @@ def get_img_url(video_name, frame_num, base_url = "/image"):
 
 
 app = Flask(__name__)
+app.debug = False
+import os
+from flask import send_from_directory
 
+
+
+#Create Static_root for Statistic files
+@app.route('/videos/<frame_number>/<video_name>')
+def video_frame(frame_number,video_name):
+    filename = frame_number + '.jpg'
+    last_folder = int(frame_number)/100
+    root = os.getcwd()
+    path = root + '/vatic-docker/data/frames_in/' + video_name + '/0/' + str(last_folder)
+    return send_from_directory(path,filename)
 
 
 
@@ -569,7 +582,7 @@ def box_check():
 
 
 if __name__ == "__main__":
-    CONTAINER_NAME = "vatic"
+    CONTAINER_NAME = "vatic_new"
     #CONTAINER_NAME = "angry_hawking"
     K_FRAME = 300
     OFFSET = 21
