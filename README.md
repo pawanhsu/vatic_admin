@@ -30,7 +30,7 @@ source .env/bin/activate
 install dependency package (if no virtualenv, add sudo to install on system)
 
 ```
-pip install flask scipy pillow matplotlib requests tinydb
+pip install flask scipy pillow matplotlib requests tinydb sqlalchemy pymysql
 ```
 
 ### run server
@@ -39,5 +39,9 @@ before admin startup, startup vatic-docker first
 ```
 #!shell
 python admin_server.py
+```
 
+or run server background with virtualenv and tmux
+```
+tmux new-session -s vatic-admin -d 'source .env/bin/activate && while [ true ]; do python admin_server.py; done'
 ```
