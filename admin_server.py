@@ -479,7 +479,11 @@ def box_check():
 
 
 if __name__ == "__main__":
+<<<<<<< HEAD
     CONTAINER_NAME = "vatic"
+=======
+    CONTAINER_NAME = "vatic_new"
+>>>>>>> 5f6d96358422100c1e035c183b0abe13b004a1b6
     #CONTAINER_NAME = "angry_hawking"
     K_FRAME = 300
     OFFSET = 21
