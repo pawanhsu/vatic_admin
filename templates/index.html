@@ -30,18 +30,10 @@
         })
           .done(function(content) {
             // pre-option
-            option.append("<option value='all' single='true'>all</option>");
 
             // console.log(content);
             // var items = JSON.parse(content).data.items;
-            var items = [{name: "car", value: "car"}, {name: "person", value: "pserson"}]
-            for (itemIndex in items) {
-              var item = items[itemIndex];
-              option.append("<option value='"+item.value+"'>"+item.name+"</option>");
-            }
-
-            // post-option
-            option.append("<option value='another' single='true'>another</option>");
+            var items = [{name: "car", value: "car"}, {name: "person", value: "person"}]
 
             option.multiselect('rebuild');
             // alert( "success" );
@@ -57,7 +49,8 @@
       }
       var exitSelectOption = function(event) {
         // TODO:  refresh or update page here
-        alert("dropdown closed");
+        var a = $('#error-multiple-select').val()
+        alert(a);
       }
       var getOptions = function() {
         var select = $('#error-multiple-select');
@@ -108,7 +101,7 @@
           onInitialized: initSelectOptions,
           onDropdownHide: exitSelectOption,
           // includeSelectAllOption: true,
-          buttonWidth: '100%',
+          buttonWidth: '43%',
           nonSelectedText: 'Select Error Type'
         }
         $('#error-multiple-select').multiselect(errorSelectOption);
@@ -226,17 +219,16 @@
 
 <!-- <img src="{{ url_for('video_frame', frame_number='0', video_name='jacksonhole.mp4') }}" alt="Smiley face" height="100" width="100"> -->
 
-
     <!--  Groupped Erros Info -->
 <div  id = "Errors-info "class="col-md-3">
   <select id="error-multiple-select" multiple="multiple">
-  </select>
-  <select class="form-control" id="select_class">
-    <option value = "all">all</option>
+    <option value='all' single='true'>all</option>
+    <option value='another' single='true'>another</option>
     {%for class in label%}
     <option value = '{{class.text}}'>{{class.text}}</option>
     {%  endfor %}
   </select>
+
   <h2> <span class="label label-danger">Errors</span></h2>
   {% for worker in errors[video_name]|sort %}
     <a href='#'  data-toggle="collapse" data-target="#{{worker}}" ><h3 class="worker-title">{{worker}} <span class="badge">{{errors[video_name][worker]|length}}</span>               <span class = "glyphicon glyphicon-collapse-down" /></h3> </a>
