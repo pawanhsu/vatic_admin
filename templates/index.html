@@ -12,13 +12,107 @@
     <script  src="//code.jquery.com/jquery-3.1.1.min.js" integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8="
     crossorigin="anonymous"></script>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.0/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
     <script src="static/index.js"></script>
-    <link  rel= "stylesheet" href="static/index.css"</script>
+    <link  rel= "stylesheet" href="static/index.css">
+
+    <!-- bootstrap-multiselect plugin -->
+    <script type="text/javascript" src="/static/js/bootstrap-multiselect.js"></script>
+    <link rel="stylesheet" href="/static/css/bootstrap-multiselect.css" type="text/css"/>
 
     <script>
+      var initSelectOptions = function(option,container) {
+        //TODO: should load option here, and
+        $.ajax({
+          method: "GET",
+          url: "/",
+        })
+          .done(function(content) {
+            // pre-option
+            option.append("<option value='all' single='true'>all</option>");
+
+            // console.log(content);
+            // var items = JSON.parse(content).data.items;
+            var items = [{name: "car", value: "car"}, {name: "person", value: "pserson"}]
+            for (itemIndex in items) {
+              var item = items[itemIndex];
+              option.append("<option value='"+item.value+"'>"+item.name+"</option>");
+            }
+
+            // post-option
+            option.append("<option value='another' single='true'>another</option>");
+
+            option.multiselect('rebuild');
+            // alert( "success" );
+          })
+          .fail(function() {
+            alert( "load type of class with error" );
+          })
+          .always(function() {
+            // success or not, this will happen
+            //alert( "complete" );
+          });
+        //$('#error-multiple-select').multiselect('rebuild');
+      }
+      var exitSelectOption = function(event) {
+        // TODO:  refresh or update page here
+        alert("dropdown closed");
+      }
+      var getOptions = function() {
+        var select = $('#error-multiple-select');
+        var option = select.find("option");
+        // console.log("fetch select");
+        // console.log(option);
+        return option;
+      }
+      var operatorAllOptions = function(exceptValue, enableOrDisabled) {
+        var options = getOptions();
+        for (var i=0; i< options.length; i++) {
+          var option = options[i];
+          // var jqOption = $(option);
+          // console.log(option.value,nonTargetOptionValue)
+          if (option.value === exceptValue) {
+            console.log("don't disable this option");
+            continue;
+          }
+          option.disabled = !enableOrDisabled;
+          option.selected = false;
+        }
+        $('#error-multiple-select').multiselect('refresh');
+      }
+      var disableAllOtherOption = function(nonTargetOption) {
+        // console.log(nonTargetOption)
+        var nonTargetOptionValue = nonTargetOption[0].value;
+        operatorAllOptions(nonTargetOptionValue, false)
+      }
+      var enableAllOtherOption = function(option) {
+        var nonTargetOptionValue = option[0].value;
+        operatorAllOptions(nonTargetOptionValue, true)
+      }
+      var changeOptionCheck = function(option, checked) {
+        if (option.attr("single")==="true") {
+          if (checked === true) {
+            disableAllOtherOption(option);
+          } else {
+            enableAllOtherOption(option);
+          }
+        }
+      }
+
       $(document).ready(function(){
+
+        // init multiple select
+        var errorSelectOption = {
+          onChange: changeOptionCheck,
+          onInitialized: initSelectOptions,
+          onDropdownHide: exitSelectOption,
+          // includeSelectAllOption: true,
+          buttonWidth: '100%',
+          nonSelectedText: 'Select Error Type'
+        }
+        $('#error-multiple-select').multiselect(errorSelectOption);
+
         $("#select_class").change(function(){
           var selected_class = $(this).val();
 
@@ -135,6 +229,8 @@
 
     <!--  Groupped Erros Info -->
 <div  id = "Errors-info "class="col-md-3">
+  <select id="error-multiple-select" multiple="multiple">
+  </select>
   <select class="form-control" id="select_class">
     <option value = "all">all</option>
     {%for class in label%}
