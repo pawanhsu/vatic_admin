@@ -49,8 +49,17 @@
       }
       var exitSelectOption = function(event) {
         // TODO:  refresh or update page here
-        var a = $('#error-multiple-select').val()
-        alert(a);
+        var select_val = $('#error-multiple-select').val()
+        alert(select_val[0])
+        $.ajax({
+          url: '/multiclass_filter',
+          data: {
+            'selected_class':select_val.toString()
+          },
+          success: function () {
+            location.reload();
+          }
+        });
       }
       var getOptions = function() {
         var select = $('#error-multiple-select');
@@ -225,7 +234,8 @@
     <option value='all' single='true'>all</option>
     <option value='another' single='true'>another</option>
     {%for class in label%}
-    <option value = '{{class}}'>{{class}}</option>
+    <!--<option value = '{{class.text}}'>{{class.text}}</option> -->
+    <option value = '{{class}}'>{{class}}</option> 
     {%  endfor %}
   </select>
 

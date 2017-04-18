@@ -18,6 +18,7 @@ from itertools import groupby
 from collections import OrderedDict
 from tinydb import TinyDB, Query
 from PIL import Image
+from dbio_Inf import *
 
 #list_videos_cmd = "docker exec amazing_booth /bin/sh -c 'cd /root/vatic; turkic list'"
 
@@ -402,9 +403,8 @@ def multiclass_filter():
     global errors
     selected_class = request.args['selected_class']
 
-    print(selected_class)
-
-    annotation_map = get_annotation_map(assignments,selected_class)
+    selected_list = selected_class.split(",")
+    annotation_map = get_annotation_map(assignments,selected_list)
     alerts = get_alerts(annotation_map)
     box_ID_map  = get_boxID_map(alerts, annotation_map, workers)
     errors = group_errors(box_ID_map, workers)
@@ -437,6 +437,7 @@ def index():
         error_id = error_data["error_id"]
         check_boxes[error_id] = 1
 
+    #label = session.query(Label).distinct(Label.text).group_by(Label.text)
     label = ['car' , 'person']
 
 
