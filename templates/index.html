@@ -225,7 +225,7 @@
     <option value='all' single='true'>all</option>
     <option value='another' single='true'>another</option>
     {%for class in label%}
-    <option value = '{{class.text}}'>{{class.text}}</option>
+    <option value = '{{class}}'>{{class}}</option>
     {%  endfor %}
   </select>
 
@@ -255,6 +255,10 @@
           {%elif error["type"] == "surplus"%}
               <tr box-id={{worker + "-" + error["box_id"]}}>
               <td><span class="label label-info">多</span></td>
+          {%elif error["type"] == "unmatched"%}
+              <tr box-id={{worker + "-" + error["box_id"]}}>
+              <td><span class="label label-primary ">非</span></td>
+
           {%endif%}
               <td>{{error["reference"]}}</td>
               <td><h4> <a onclick='page_update_seek({{error["start"]}})'>{{error["start"]}}</a> ➡ <a onclick='page_update_seek({{error["end"]}})'>{{error["end"]}}</h4></td>

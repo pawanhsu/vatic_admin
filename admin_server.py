@@ -6,8 +6,7 @@ import matplotlib
 matplotlib.use('Agg')
 from matplotlib import pyplot as plt
 import uuid
-from bbox_comparator import get_alert
-from bbox_comparator import parse_txt
+from bbox_comparator import *
 import cStringIO
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_agg import FigureCanvasAgg
@@ -19,7 +18,6 @@ from itertools import groupby
 from collections import OrderedDict
 from tinydb import TinyDB, Query
 from PIL import Image
-from dbio_Inf import *
 
 #list_videos_cmd = "docker exec amazing_booth /bin/sh -c 'cd /root/vatic; turkic list'"
 
@@ -120,112 +118,10 @@ def get_annotation_map(assignments,selected_class="all"):
 
     return annotation_map
 
-def get_boxID_map(alerts,annotation_map, workers):
-    box_ID_map = {}
-    for video_name in alerts:
-        box_ID_map[video_name] = {}
-        for frame in alerts[video_name]:
-            isolations = alerts[video_name][frame].get("isolation" ,{})
-            for worker_A, isolation in isolations.items():
-                for box_id_A, IOU_list in isolation.items():
-                    box_A = annotation_map[video_name][worker_A][frame][box_id_A].copy()
-                    box_A["matching"] = {}
-                    for worker in workers:
-                        if worker == worker_A:
-                            box_A["matching"][worker] = "owner"
-                        elif worker in IOU_list:
-                            box_A["matching"][worker] = "missing"
-                        else:
-                            box_A["matching"][worker] = "matched"
-                    new_box_id_A = "{}_{}".format(worker_A, box_id_A)
-                    if new_box_id_A not in box_ID_map[video_name]:
-                        box_ID_map[video_name][new_box_id_A] = {}
-            #print(new_box_id_A,frame)
-                    box_ID_map[video_name][new_box_id_A][frame] = box_A
-
-    return box_ID_map
-
-
-def group_continuous_int(data, mark):
-    ranges = []
-    for k, g in groupby(enumerate(data), lambda (i,x):i-x):
-        group = map(itemgetter(1), g)
-        ranges.append((group[0], group[-1]))
-    return [(start, end, mark) for start, end in ranges if start != end]
 
 
 
 
-def group_errors(box_ID_map, workers):
-    errors = {}
-    get_user = lambda box_id: box_id[:box_id.find("_")]
-    #initalization
-    for video_name in box_ID_map:
-        errors[video_name] = {}
-        for worker in workers:
-            errors[video_name][worker] = {}
-            errors[video_name][worker]["missing"] = []
-            errors[video_name][worker]["surplus"] = []
-
-
-
-
-    for video_name in box_ID_map:
-
-        for worker in workers:
-
-            #Filling the "MISSING" field of the dictionary
-            for box_ID in box_ID_map[video_name]:
-                missings = []
-                for frame in  sorted(box_ID_map[video_name][box_ID].keys()):
-                    box = box_ID_map[video_name][box_ID][frame]
-                    status = box["matching"][worker]
-                    if status == "owner":
-                        break
-                    elif status == "missing":
-                        missings.append(frame)
-                error_missing = group_continuous_int(missings, box_ID)
-                errors[video_name][worker]["missing"] += error_missing
-                user_name = get_user(box_ID)
-                for error in error_missing:
-                    #print(error)
-                    #print(worker)
-                    error_surplus = list(error)
-                    error_surplus.append(worker)
-                    error_surplus = tuple(error_surplus)
-                    errors[video_name][user_name]["surplus"] += [error_surplus]
-
-    normalized_errors = {}
-    for video_name in box_ID_map:
-        normalized_errors[video_name] = {}
-        for worker in workers:
-            errors[video_name][worker]["mixed"] = errors[video_name][worker]["missing"] + errors[video_name][worker]["surplus"]
-            errors[video_name][worker]["missing"] = sorted(errors[video_name][worker]["missing"], key=lambda x: x[0]-x[1])
-            errors[video_name][worker]["surplus"] = sorted(errors[video_name][worker]["surplus"], key=lambda x: x[0]-x[1])
-            errors[video_name][worker]["mixed"] = sorted(errors[video_name][worker]["mixed"], key=lambda x: x[0])
-            normalized_errors[video_name][worker] = []
-            for i, error in  enumerate(errors[video_name][worker]["mixed"]):
-                if len(error) == 3:
-                    error_type = "missing"
-                    reference, box_id = error[2].split("_")
-                    start = error[0]
-                    end = error[1]
-
-                elif len(error) == 4:
-                    error_type = "surplus"
-                    reference = error[3]
-                    box_id = error[2].split("_")[1]
-                    start = error[0]
-                    end = error[1]
-
-                normalized_error = {"type":error_type, "reference":reference, "start":start, "end":end, "box_id":box_id}
-                normalized_errors[video_name][worker].append(normalized_error)
-
-
-
-
-
-    return OrderedDict(sorted(normalized_errors.items(), key= lambda x: x[0]))
 
 
 def get_alerts(annotation_map):
@@ -317,7 +213,8 @@ def get_alert_boxes():
 
         alert_boxes = []
         if frame_num in alerts[video_name]:
-            isolation_info = alerts[video_name][frame_num]["isolation"]
+            isolation_info = alerts[video_name][frame_num].get("isolation",{})
+            unmatchings = alerts[video_name][frame_num].get("wrong-class", {})
         else:
             return jsonify({})
 
@@ -331,6 +228,21 @@ def get_alert_boxes():
 
 
                 alert_boxes.append(alert_box)
+
+
+        for worker, worker_unmatched_info in unmatchings.items():
+            print(worker_unmatched_info)
+            for objID in worker_unmatched_info:
+                alert_box = annotation_map[video_name][worker][frame_num][objID].copy()
+
+                alert_box["source"] = worker
+                alert_box["id"] = objID
+                alert_box["bad_matchings"] = worker_unmatched_info[objID]["unmatched"]
+
+
+                alert_boxes.append(alert_box)
+
+
         return jsonify(alert_boxes)
 
 
@@ -484,14 +396,12 @@ def update():
 
 @app.route('/multiclass_filter')
 def multiclass_filter():
-    assignments = get_assignments(user_map)
-    dump_data(assignments)
+
     global annotation_map
     global alerts
     global errors
     selected_class = request.args['selected_class']
-    if(selected_class != 'all'):
-        selected_class = '"' + selected_class + '"'
+
     print(selected_class)
 
     annotation_map = get_annotation_map(assignments,selected_class)
@@ -527,7 +437,7 @@ def index():
         error_id = error_data["error_id"]
         check_boxes[error_id] = 1
 
-    label = session.query(Label).distinct(Label.text).group_by(Label.text)
+    label = ['car' , 'person']
 
 
     return render_template('index.html', label=label, img_url=img_url, videos=videos,frame_num=frame_num,\
@@ -583,6 +493,7 @@ def box_check():
 
 if __name__ == "__main__":
     CONTAINER_NAME = "vatic_new"
+
     #CONTAINER_NAME = "angry_hawking"
     K_FRAME = 300
     OFFSET = 21
