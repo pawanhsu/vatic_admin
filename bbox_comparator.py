@@ -5,7 +5,7 @@ from collections import OrderedDict
 
 
 #Read the bboxes txt file and return a dictionary
-def parse_txt(file="sample_output.txt", selected_class="all"):
+def parse_txt(file="sample_output.txt", selected_class=["all"]):
 
     annotations = {}
 
@@ -28,8 +28,8 @@ def parse_txt(file="sample_output.txt", selected_class="all"):
         #Ignoring occulusion or outside of the frame
         if occu or outside:
             continue
-        if(selected_class != 'all'):
-            if label != selected_class:
+        if('all' not in selected_class):
+            if label not in selected_class:
                 continue
         bbox_elements = ["xmin", "ymin", "xmax", "ymax", "outside", "occu", "auto", "label"]
         bbox = {}
@@ -374,7 +374,7 @@ def group_errors(box_ID_map, workers):
                 user_name = get_user(box_ID)
                 #Fillinh the surplus field of the dictionary by reversing the *MISSING'
                 for error in error_missing:
-                
+
                     error_surplus = list(error)
                     error_surplus.append(worker)
                     error_surplus = tuple(error_surplus)

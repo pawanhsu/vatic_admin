@@ -12,13 +12,109 @@
     <script  src="//code.jquery.com/jquery-3.1.1.min.js" integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8="
     crossorigin="anonymous"></script>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.0/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
     <script src="static/index.js"></script>
-    <link  rel= "stylesheet" href="static/index.css"</script>
+    <link  rel= "stylesheet" href="static/index.css">
+
+    <!-- bootstrap-multiselect plugin -->
+    <script type="text/javascript" src="/static/js/bootstrap-multiselect.js"></script>
+    <link rel="stylesheet" href="/static/css/bootstrap-multiselect.css" type="text/css"/>
 
     <script>
+      var initSelectOptions = function(option,container) {
+        //TODO: should load option here, and
+        $.ajax({
+          method: "GET",
+          url: "/",
+        })
+          .done(function(content) {
+            // pre-option
+
+            // console.log(content);
+            // var items = JSON.parse(content).data.items;
+            var items = [{name: "car", value: "car"}, {name: "person", value: "person"}]
+
+            option.multiselect('rebuild');
+            // alert( "success" );
+          })
+          .fail(function() {
+            alert( "load type of class with error" );
+          })
+          .always(function() {
+            // success or not, this will happen
+            //alert( "complete" );
+          });
+        //$('#error-multiple-select').multiselect('rebuild');
+      }
+      var exitSelectOption = function(event) {
+        // TODO:  refresh or update page here
+        var select_val = $('#error-multiple-select').val()
+        alert(select_val[0])
+        $.ajax({
+          url: '/multiclass_filter',
+          data: {
+            'selected_class':select_val.toString()
+          },
+          success: function () {
+            location.reload();
+          }
+        });
+      }
+      var getOptions = function() {
+        var select = $('#error-multiple-select');
+        var option = select.find("option");
+        // console.log("fetch select");
+        // console.log(option);
+        return option;
+      }
+      var operatorAllOptions = function(exceptValue, enableOrDisabled) {
+        var options = getOptions();
+        for (var i=0; i< options.length; i++) {
+          var option = options[i];
+          // var jqOption = $(option);
+          // console.log(option.value,nonTargetOptionValue)
+          if (option.value === exceptValue) {
+            console.log("don't disable this option");
+            continue;
+          }
+          option.disabled = !enableOrDisabled;
+          option.selected = false;
+        }
+        $('#error-multiple-select').multiselect('refresh');
+      }
+      var disableAllOtherOption = function(nonTargetOption) {
+        // console.log(nonTargetOption)
+        var nonTargetOptionValue = nonTargetOption[0].value;
+        operatorAllOptions(nonTargetOptionValue, false)
+      }
+      var enableAllOtherOption = function(option) {
+        var nonTargetOptionValue = option[0].value;
+        operatorAllOptions(nonTargetOptionValue, true)
+      }
+      var changeOptionCheck = function(option, checked) {
+        if (option.attr("single")==="true") {
+          if (checked === true) {
+            disableAllOtherOption(option);
+          } else {
+            enableAllOtherOption(option);
+          }
+        }
+      }
+
       $(document).ready(function(){
+
+        // init multiple select
+        var errorSelectOption = {
+          onChange: changeOptionCheck,
+          onInitialized: initSelectOptions,
+          onDropdownHide: exitSelectOption,
+          // includeSelectAllOption: true,
+          buttonWidth: '43%',
+          nonSelectedText: 'Select Error Type'
+        }
+        $('#error-multiple-select').multiselect(errorSelectOption);
+
         $("#select_class").change(function(){
           var selected_class = $(this).val();
 
@@ -34,6 +130,8 @@
       });
         });
       });
+
+
 </script>
   </head>
 
@@ -128,15 +226,19 @@
 </div>
 </div>
 
+<!-- <img src="{{ url_for('video_frame', frame_number='0', video_name='jacksonhole.mp4') }}" alt="Smiley face" height="100" width="100"> -->
 
     <!--  Groupped Erros Info -->
 <div  id = "Errors-info "class="col-md-3">
-  <select class="form-control" id="select_class">
-    <option value = "all">all</option>
+  <select id="error-multiple-select" multiple="multiple">
+    <option value='all' single='true'>all</option>
+    <option value='another' single='true'>another</option>
     {%for class in label%}
-    <option value = '{{class}}'>{{class}}</option>
+    <!--<option value = '{{class.text}}'>{{class.text}}</option> -->
+    <option value = '{{class}}'>{{class}}</option> 
     {%  endfor %}
   </select>
+
   <h2> <span class="label label-danger">Errors</span></h2>
   {% for worker in errors[video_name]|sort %}
     <a href='#'  data-toggle="collapse" data-target="#{{worker}}" ><h3 class="worker-title">{{worker}} <span class="badge">{{errors[video_name][worker]|length}}</span>               <span class = "glyphicon glyphicon-collapse-down" /></h3> </a>
