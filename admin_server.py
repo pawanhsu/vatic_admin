@@ -498,7 +498,10 @@ if __name__ == "__main__":
     #CONTAINER_NAME = "angry_hawking"
     K_FRAME = 300
     OFFSET = 21
-    VATIC_ADDRESS = "http://0.0.0.0:8892"
+    EXT_ADDR = os.environ.get('EXTERNAL_ADDRESS')
+    if EXT_ADDR == None:
+        EXT_ADDR = "0.0.0.0"
+    VATIC_ADDRESS = "http://"+EXT_ADDR+":8892"
 
     vatic_path = "/root/vatic"
     inside_cmd = 'cd {}; turkic list --detail'.format(vatic_path)

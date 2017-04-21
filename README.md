@@ -36,6 +36,12 @@ pip install flask scipy pillow matplotlib requests tinydb sqlalchemy pymysql
 ### run server
 
 before admin startup, startup vatic-docker first
+
+if need setup external ip, using following command
+```
+export EXTERNAL_ADDRESS=192.168.168.76
+```
+
 ```
 #!shell
 python admin_server.py
