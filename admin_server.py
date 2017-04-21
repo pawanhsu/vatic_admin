@@ -327,7 +327,7 @@ def get_frame():
         frame["frame_num"] = frame_key
         frame["img_url"] = get_img_url(video_name, frame_key)
         frame["target_links"] = get_target_links(video_name, frame_key, frame["alert"])
-        break;
+        #  break;
 
     response_data = {"success": True, "data": frames}
     return jsonify(response_data)
