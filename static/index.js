@@ -76,6 +76,15 @@ function page_update_seek(frame){
   var video = $("#video-selection").val().slice(13);
 
 
+  var new_frame_data = video_frames[frame]
+
+  render_image(frame, video);
+  $("#frame-num").html(frame);
+
+  update_alert(new_frame_data["alert"]);
+  change_links(new_frame_data["target_links"]);
+
+  /*
     $.ajax({
         url: "/seek",
         data:  {"frame":frame, "video":video},
@@ -97,19 +106,40 @@ function page_update_seek(frame){
 
         }
     });
-
-
+  */
 }
 
 
 
 
 function page_update(url){
-  var frame = $("#frame-num").html();
-
+  var frame = parseInt($("#frame-num").html());
   var video = $("#video-selection").val().slice(13);
 
+  if (url === "/next") {
+   frame = frame + 1;
+  } else if (url == "/previous") {
+   frame = frame - 1;
+  } else {
+    console.err("not imp");
+    return ;
+  }
 
+  if (!video_frames.hasOwnProperty(frame)) {
+    console.log("end or out of range");
+    stop();
+    return;
+  }
+  var new_frame_data = video_frames[frame]
+
+  render_image(frame, video);
+  $("#frame-num").html(frame);
+
+  update_alert(new_frame_data["alert"]);
+  change_links(new_frame_data["target_links"]);
+
+
+  /*
     $.ajax({
         url: url,
 
@@ -130,8 +160,7 @@ function page_update(url){
 
         }
     });
-
-
+  */
 }
 
 function next_update(){
@@ -149,16 +178,20 @@ function previous_update(){
 }
 
 function play(){
-    clearInterval(rewind_ID);
-    if (play_ID == 0){
-    play_ID  = setInterval(function(){page_update("/next");}, 100);
+  clearInterval(rewind_ID);
+  if (play_ID == 0){
+    play_ID  = setInterval(function(){
+      page_update("/next");
+    }, refresh_interval);
   }
 }
 
 function rewind(){
-    clearInterval(play_ID);
-    if (rewind_ID == 0){
-    rewind_ID = setInterval(function(){page_update("/previous");}, 100);
+  clearInterval(play_ID);
+  if (rewind_ID == 0){
+    rewind_ID = setInterval(function(){
+      page_update("/previous");
+    }, refresh_interval);
   }
 }
 
@@ -324,16 +357,22 @@ function render_image(frame, video){
 
 
 
-    var params = { frame:frame, video:video };
-    var img_url = "/image?" + jQuery.param(params);
-    console.log(img_url)
+    // var params = { frame:frame, video:video };
+    // var img_url = "/image?" + jQuery.param(params);
+    var img_url = frame_to_path(video, frame)
+    // console.log(img_url)
       var svg = d3.select("#alert-svg");
 
-      svg.append("image")
-      .attr("xlink:href", img_url)
-      .attr("x", "0")
-      .attr("y", "0");
-
+      // svg.append("image")
+      // .attr("xlink:href", img_url)
+      // .attr("x", "0")
+      // .attr("y", "0");
+      var jq_svg = $("#alert-svg");
+      jq_svg.find("image").attr("display", "none");
+      
+      var target_image = jq_svg.find("image#img-"+frame)
+      // console.log(target_image)
+      target_image.attr("display","");
 
 
        $.ajax({
@@ -353,8 +392,28 @@ function render_image(frame, video){
        });
      }
 
+function preload_images(video_name) {
+  var svg = d3.select("#alert-svg");
+  var svg_img_onload = function() {
+    console.log("image loaded");
+  }
+  for (var frame in video_frames) {
+    console.log(frame)
+    var img_url = frame_to_path(video_name, frame)
+
+    console.log(img_url)
+    svg.append("image")
+      .attr("xlink:href", img_url)
+      .attr("x", "0")
+      .attr("y", "0")
+      .attr("display", "none")
+      .attr("id", "img-"+frame);
+      //.onload(svg_img_onload);
+  }
+}
 
 $(function() {
+    // init function here
     color_map = get_color_map();
 
     $('#next-button').click(next_update);
@@ -368,9 +427,23 @@ $(function() {
     var video = $("#video-selection").val().slice(13);
 
 
+    console.log("preloading all images");
+    $.ajax({
+      url: '/frames?' + $.param({video: video}) ,
+      type: 'GET', 
+      success: function(response) {
+        video_frames = response.data;
+        console.log(response);
+        // alert("start load images");
+        preload_images(video);
 
+        render_image(frame, video);
+      },
+      error: function(error) {
+      
+      }
+    })
 
-    render_image(frame, video);
 
 
     $("tr").not(':first').hover(
@@ -393,3 +466,13 @@ $(function() {
 
 
 })
+
+
+// some low level function for genernator very basic values
+function frame_to_path(video_name, frame_num) {
+  dir_A = Math.floor(frame_num / 10000).toString();
+  dir_B = Math.floor(frame_num / 100).toString();
+  path = [img_base_path + video_name, dir_A, dir_B, frame_num + ".jpg" ]
+
+  return path.join("/");
+}

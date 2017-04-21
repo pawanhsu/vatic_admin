@@ -260,6 +260,7 @@ def get_alert_boxes():
 
 @app.route('/image')
 def serve_image():
+    ## deprecated 
     #return "YoYO!"
     if request.method == 'GET':
         video_name = request.args['video']
@@ -304,12 +305,36 @@ def get_first_alert_frame(video_name):
     else:
         return 0
 
+@app.route('/frames', methods=['GET'])
+def get_frame():
+    video_name = request.args.get('video')
+    if video_name == None:
+        return jsonify(success=False, message="no video name input")
+
+    frames = {}
 
 
+    alert_frames = alerts[video_name]
+    print("====alert_frames====")
+    print(alert_frames)
+    for frame_key in alert_frames:
+    #frame_key = 0
+    #while True:
+        frames[frame_key] = {}
+        frame = frames[frame_key]
 
+        frame["alert"] = alert_frames[frame_key]
+        frame["frame_num"] = frame_key
+        frame["img_url"] = get_img_url(video_name, frame_key)
+        frame["target_links"] = get_target_links(video_name, frame_key, frame["alert"])
+        break;
+
+    response_data = {"success": True, "data": frames}
+    return jsonify(response_data)
 
 @app.route('/seek')
 def seek_alert():
+    ## deprecated 
     if request.method == 'GET':
         video_name = request.args['video']
 
@@ -329,11 +354,9 @@ def seek_alert():
     return jsonify(img_url=img_url, frame_num=target_frame, alert=alert, target_links=target_links)
 
 
-
-
-
 @app.route('/previous')
 def previous_alert():
+    ## deprecated 
     if request.method == 'GET':
         video_name = request.args['video']
         current_frame = int(request.args['frame'])
@@ -353,12 +376,9 @@ def previous_alert():
     return jsonify(img_url=img_url, frame_num=previous_frame, alert=alert, target_links=target_links)
 
 
-
-
-
-
 @app.route('/next')
 def next_alert():
+    ## deprecated 
     if request.method == 'GET':
         video_name = request.args['video']
         print(video_name)
@@ -411,6 +431,11 @@ def multiclass_filter():
 
     return redirect("./")
 
+def getUserList():
+    users = []
+    for user in user_map:
+        users.append(user)
+    return users
 
 @app.route('/')
 def index():
@@ -431,6 +456,7 @@ def index():
     img_url = get_img_url(video_name, frame_num)
     print(img_url)
     alert = alerts[video_name].get(frame_num, [])
+    print(type(alert))
     target_links = get_target_links(video_name, frame_num, alert)
     check_boxes = {}
     for error_data in check_box_DB.all():
@@ -441,8 +467,10 @@ def index():
     label = ['car' , 'person']
 
 
+    users = getUserList()
     return render_template('index.html', label=label, img_url=img_url, videos=videos,frame_num=frame_num,\
-        target_links=target_links, alert=alert, errors=errors, video_name=video_name, check_boxes=check_boxes, color_map=color_map)
+        target_links=target_links, alert=alert, errors=errors, video_name=video_name, check_boxes=check_boxes, color_map=color_map,\
+        vatic=VATIC_ADDRESS, users=users)
 
 
 

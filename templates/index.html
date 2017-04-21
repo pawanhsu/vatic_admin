@@ -22,6 +22,14 @@
     <link rel="stylesheet" href="/static/css/bootstrap-multiselect.css" type="text/css"/>
 
     <script>
+      // vatic set 30fps 
+      var refresh_interval = 1000 / 30;
+      var users = [];
+      {% for user in users|sort %}
+        users.push("{{user}}");
+      {% endfor %}
+      var img_base_path = "{{ vatic }}/frames/" + '{{ users[0] }}' + "_";
+      var video_frames = {};
       var initSelectOptions = function(option,container) {
         //TODO: should load option here, and
         $.ajax({
