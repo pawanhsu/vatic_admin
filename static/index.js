@@ -76,8 +76,15 @@ function page_update_seek(frame){
   var video = $("#video-selection").val().slice(13);
 
 
-  var new_frame_data = video_frames[frame]
+  var new_frame_data = video_frames[frame];
 
+
+  var preload_range = {
+    start: frame_num_offset_frames(frame,-300), 
+    end: frame_num_offset_frames(frame,300)
+  };
+  var preload_cleanup = "ALL";
+  preload_images(video, preload_range, preload_cleanup)
   render_image(frame, video);
   $("#frame-num").html(frame);
 
@@ -117,9 +124,11 @@ function page_update(url){
   var video = $("#video-selection").val().slice(13);
 
   if (url === "/next") {
-   frame = frame + 1;
+    frame = frame_num_offset_frames(frame,1);
+    // frame = frame + 1;
   } else if (url == "/previous") {
-   frame = frame - 1;
+    frame = frame_num_offset_frames(frame,-1);
+    // frame = frame - 1;
   } else {
     console.err("not imp");
     return ;
@@ -349,11 +358,54 @@ function get_color_map(){
 }
 
 
+function check_buffer(video_name,frame) {
+  // console.log(frame, preload_status.start, preload_status.end);
+  // default load 20 second at init
+  // and check backward 5 second and forword 5 second 
+  // if not enough, load 10 seconds
+  if (preload_status.loading === true) {
+    return;
+  }
+  var should_buffer_back = frame_num_offset_frames(frame, -150);
+  should_buffer_back = parseInt(should_buffer_back);
+  var should_buffer_foword = frame_num_offset_frames(frame, 150);
+  should_buffer_foword = parseInt(should_buffer_foword);
+  // console.log(preload_status.start, should_buffer_back);
+  if (preload_status.start > should_buffer_back) {
+    console.log("back buffer not enough");
+    var load_range = {
+      start: frame_num_offset_frames(preload_status.start,-300),
+      end: frame_num_offset_frames(preload_status.start,-1)
+    }
+    var cleanup_range = {
+      start: frame_num_offset_frames(preload_status.end,-300),
+      end: preload_status.end.toString()
+    }
+    console.log(load_range);
+    console.log(cleanup_range);
+    preload_images(video_name,load_range, cleanup_range);
+  }
+  // console.log(preload_status.end, should_buffer_foword);
+  if (preload_status.end < should_buffer_foword) {
+    console.log("foword buffer not enough");
+    var load_range = {
+      start: frame_num_offset_frames(preload_status.end,1),
+      end: frame_num_offset_frames(preload_status.end,300)
+    }
+    var cleanup_range = {
+      start: preload_status.start.toString(),
+      end: frame_num_offset_frames(preload_status.start,300)
+    }
+    console.log(load_range);
+    console.log(cleanup_range);
+    preload_images(video_name,load_range, cleanup_range);
+  }
+
+}
 
 
 function render_image(frame, video){
-
-
+    check_buffer(video,frame);
 
 
 
@@ -362,15 +414,14 @@ function render_image(frame, video){
     var img_url = frame_to_path(video, frame)
     // console.log(img_url)
       var svg = d3.select("#alert-svg");
-
-      // svg.append("image")
-      // .attr("xlink:href", img_url)
-      // .attr("x", "0")
-      // .attr("y", "0");
       var jq_svg = $("#alert-svg");
-      jq_svg.find("image").attr("display", "none");
+      if (lastShowImage !== undefined) {
+        jq_svg.find(lastShowImage).attr("display", "none");
+      }
+      var image_selector = "#img-" + frame.toString();
       
-      var target_image = jq_svg.find("image#img-"+frame)
+      var target_image = jq_svg.find(image_selector)
+      lastShowImage = image_selector;
       // console.log(target_image)
       target_image.attr("display","");
 
@@ -392,23 +443,94 @@ function render_image(frame, video){
        });
      }
 
-function preload_images(video_name) {
-  var svg = d3.select("#alert-svg");
-  var svg_img_onload = function() {
-    console.log("image loaded");
+function preload_images_cleanup(cleanup) {
+  var jq_svg = $("#alert-svg");
+  if (typeof(cleanup)==="object") {
+    var frame_start_value = cleanup.start;
+    var frame_end_value = cleanup.end;
   }
   for (var frame in video_frames) {
-    console.log(frame)
+    var frame_value = parseInt(frame);
+    if (cleanup === "ALL") {
+      //console.log("remove all cache");
+    } else if (frame_value < frame_start_value) {
+      continue;
+    } else if (frame_value >  frame_end_value) {
+      break;
+    }
+    var image_selector = "#img-" + frame.toString();
+    var target_image = jq_svg.find(image_selector)
+    target_image.remove();
+  }
+}
+function preload_images(video_name, preload, cleanup) {
+  if (cleanup!=null) {
+    preload_images_cleanup(cleanup)
+  }
+  console.log("preload image:", preload)
+  var svg = d3.select("#alert-svg");
+  var frame_start_value = parseInt(preload.start);
+  var frame_end_value = parseInt(preload.end);
+  preload_status.loading = true;
+  if (cleanup==null || cleanup === "ALL") {
+    preload_status.start = parseInt(frame_start_value);
+    preload_status.end = parseInt(frame_end_value);
+  } else {
+    console.log(cleanup.start, cleanup.end);
+    console.log(preload_status.start, preload_status.end)
+    if (parseInt(cleanup.start) === preload_status.start) {
+      preload_status.start = parseInt(cleanup.end);
+      preload_status.end = parseInt(frame_end_value);
+    } else if (parseInt(cleanup.end) === preload_status.end) {
+      preload_status.start = parseInt(frame_start_value);
+      preload_status.end = parseInt(cleanup.start);
+    } else {
+      console.error("unknown");
+    }
+  }
+  preload_status.loading_array = [];
+
+  for (var frame in video_frames) {
+    var frame_value = parseInt(frame);
+    if (frame_value < frame_start_value) {
+      continue;
+    }
+    if (frame_value >  frame_end_value) {
+      break;
+    }
+    preload_status.loading_array[frame_value] = false;
+  }
+
+  for (var frame in video_frames) {
+    var frame_value = parseInt(frame);
+    if (frame_value < frame_start_value) {
+      // console.log("skip this frame", frame);
+      continue;
+    }
+    if (frame_value >  frame_end_value) {
+      // console.log("break on this frame", frame);
+      break;
+    }
+    //console.log(frame)
     var img_url = frame_to_path(video_name, frame)
 
-    console.log(img_url)
+    // console.log(img_url)
     svg.append("image")
       .attr("xlink:href", img_url)
       .attr("x", "0")
       .attr("y", "0")
       .attr("display", "none")
-      .attr("id", "img-"+frame);
-      //.onload(svg_img_onload);
+      .attr("id", "img-"+frame)
+      .attr("onload", function() {
+        preload_status.loading_array[frame_value] = true;
+        for (var load_index in preload_status.loading_array) {
+          if (preload_status.loading_array[load_index] === false) {
+            return;
+          }
+        }
+        preload_status.loading = false;
+        console.log("all done");
+      });
   }
 }
 
@@ -433,9 +555,17 @@ $(function() {
       type: 'GET', 
       success: function(response) {
         video_frames = response.data;
+        frame_indexs = Object.keys(video_frames);
         console.log(response);
         // alert("start load images");
-        preload_images(video);
+        // 30fps * 20 second = 600
+        var preload_end = frame_num_offset_frames(frame, 600);
+        var preload_range = {
+          start: frame,
+          end: preload_end
+        }
+        var cleanup_range = null;
+        preload_images(video,preload_range,cleanup_range);
 
         render_image(frame, video);
       },
@@ -475,4 +605,21 @@ function frame_to_path(video_name, frame_num) {
   path = [img_base_path + video_name, dir_A, dir_B, frame_num + ".jpg" ]
 
   return path.join("/");
+}
+
+function frame_num_to_index(frame_num) {
+  return frame_indexs.indexOf(frame_num.toString());
+}
+function frame_num_offset_frames(frame_num, offset) {
+  var current_index = parseInt(frame_num_to_index(frame_num));
+  var new_index = current_index + parseInt(offset);
+  var new_num = frame_indexs[new_index.toString()];
+  if (new_num===undefined) {
+    if (offset>0) {
+      new_num = frame_indexs[frame_index.length - 1];
+    } else if (offset < 0) {
+      new_num = frame_indexs[0];
+    }
+  }
+  return new_num;
 }
