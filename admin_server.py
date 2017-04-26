@@ -476,11 +476,22 @@ def index():
     #label = session.query(Label).distinct(Label.text).group_by(Label.text)
     label = ['car' , 'person']
 
+    #video_res = []
+    users = getUserList()
+    user_id = session.query(User).first().id
+    all_video = session.query(Video).filter(Video.userid == user_id)
+    for i in range(0,all_video.count()):
+        db_video_name = all_video[i].slug.split("_",1)[1]
+        #  print(db_video_name)
+        #  print(video_name)
+        if (db_video_name) == video_name:
+            video_res = {'width':all_video[i].width,'height':all_video[i].height}
+            break;
 
     users = getUserList()
     return render_template('index.html', label=label, img_url=img_url, videos=videos,frame_num=frame_num,\
         target_links=target_links, alert=alert, errors=errors, video_name=video_name, check_boxes=check_boxes, color_map=color_map,\
-        vatic=VATIC_ADDRESS, users=users)
+        vatic=VATIC_ADDRESS, users=users, video_res=video_res)
 
 
 

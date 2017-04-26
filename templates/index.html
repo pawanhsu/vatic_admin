@@ -76,19 +76,13 @@
           }
         });
       }
-      var getOptions = function() {
-        var select = $('#error-multiple-select');
-        var option = select.find("option");
-        // console.log("fetch select");
-        // console.log(option);
-        return option;
-      }
-      var operatorAllOptions = function(exceptValue, enableOrDisabled) {
-        var options = getOptions();
+      var operatorAllOptions = function(exceptOption, enableOrDisabled) {
+        var exceptValue = exceptOption[0].value;
+        var par = exceptOption.parent();
+        var options = exceptOption.parent().find("option");
         for (var i=0; i< options.length; i++) {
           var option = options[i];
-          // var jqOption = $(option);
-          // console.log(option.value,nonTargetOptionValue)
+          console.log(option.value,exceptValue)
           if (option.value === exceptValue) {
             console.log("don't disable this option");
             continue;
@@ -96,19 +90,18 @@
           option.disabled = !enableOrDisabled;
           option.selected = false;
         }
-        $('#error-multiple-select').multiselect('refresh');
+        $("#"+par[0].id).multiselect('refresh');
       }
       var disableAllOtherOption = function(nonTargetOption) {
         // console.log(nonTargetOption)
-        var nonTargetOptionValue = nonTargetOption[0].value;
-        operatorAllOptions(nonTargetOptionValue, false)
+        operatorAllOptions(nonTargetOption, false)
       }
-      var enableAllOtherOption = function(option) {
-        var nonTargetOptionValue = option[0].value;
-        operatorAllOptions(nonTargetOptionValue, true)
+      var enableAllOtherOption = function(nonTargetOption) {
+        operatorAllOptions(nonTargetOption, true)
       }
       var changeOptionCheck = function(option, checked) {
         if (option.attr("single")==="true") {
+          console.log("single option");
           if (checked === true) {
             disableAllOtherOption(option);
           } else {
@@ -117,6 +110,8 @@
         }
       }
 
+      var exitUserSelectOption = function(event) {
+      }
       $(document).ready(function(){
 
         // init multiple select
@@ -125,11 +120,23 @@
           onInitialized: initSelectOptions,
           onDropdownHide: exitSelectOption,
           // includeSelectAllOption: true,
-          buttonWidth: '43%',
+          buttonWidth: '150px',
           nonSelectedText: 'Select Error Type'
         }
         $('#error-multiple-select').multiselect(errorSelectOption);
 
+        // init user select
+        var userSelectOption = {
+          onChange: changeOptionCheck,
+          onInitialized: initSelectOptions,
+          onDropdownHide: exitUserSelectOption,
+          // includeSelectAllOption: true,
+          buttonWidth: '150px',
+          nonSelectedText: 'Select User'
+        }
+        $('#user-multiple-select').multiselect(userSelectOption);
+
+        /* old selector
         $("#select_class").change(function(){
           var selected_class = $(this).val();
 
@@ -141,13 +148,14 @@
             success: function () {
               location.reload();
             }
-
-      });
+          });
         });
+        */
+
       });
 
 
-</script>
+    </script>
   </head>
 
 
@@ -159,51 +167,120 @@
 
 
 
-<body style="margin:16px; padding:16px">
+<body>
+  <div class="container-fluid">
+    <h1>Vatic Admin Prototype 2.0</h1>
+    <div class="row">
+      <div class="col-md-6">
+        <!--   Select Picker for Video and Update Button -->
+        <select id="video-selection" class="form-contol" style="height:35px" 
+          onChange="window.document.location.href=this.options[this.selectedIndex].value;">
+            {% for video in videos %}
+              <option value="/?video_name={{video}}">{{video}}</option>
+            {% endfor %}
+        </select>
+        <a href="update"><button type="button" class="btn btn-primary">Update <span class="glyphicon glyphicon-repeat"></button></a>
+        <!--   End of Select Picker for Video and Update Button -->
+      </div>
+      <div class="col-md-2">
+        <h3 style="margin-top: 10px;">Error List</h3>
+      </div>
+      <div class="col-md-4 text-right">
+        <select id="user-multiple-select" multiple="multiple">
+          <option value='all' single='true'>all</option>
+          {%for user in users%}
+          <option value = '{{user}}'>{{user}}</option> 
+          {%  endfor %}
+        </select>
 
-<h1>Vatic Admin Prototype 2.0</h1>
+        <select id="error-multiple-select" multiple="multiple">
+          <option value='all' single='true'>all</option>
+          <option value='another' single='true'>another</option>
+          {%for class in label%}
+          <!--<option value = '{{class.text}}'>{{class.text}}</option> -->
+          <option value = '{{class}}'>{{class}}</option> 
+          {%  endfor %}
+        </select>
+      </div>
+    </div>
+  </div>
 
+  <div class="container-fluid" id="body">
+    <div class="row">
+      <div class="col-md-6" id="player">
+        <h2><span class="label label-default"><strong>Frame:</strong> <strong id='frame-num'>{{frame_num}}</strong></span></h2>
+        <svg id="alert-svg" class="svg-content" frame-num="{{frame_num}}" 
+          viewBox="0 0 {{video_res.width}} {{video_res.height}}" 
+          preserveAspectRatio="xMinYMin meet" >
+        <!--  Control Buttons -->
+        <div id="buttons">
+          <a id="previous-button"><button class="btn btn-success"> Previous <span class="glyphicon glyphicon-arrow-left"></span></button></a>
+          <a id="next-button"><button class="btn btn-primary"> Next <span class="glyphicon glyphicon-arrow-right"></span></button></a>
+          &nbsp;
+          &nbsp;
+          <a id="play-button"><button class="btn btn-danger"> Play <span class="glyphicon glyphicon-play"></span></button></a>
+          <a id="stop-button"><button class="btn btn-warning"> Pause <span class="glyphicon glyphicon-pause"></span></button></a>
+          <a id="rewind-button"><button class="btn btn-info"> Rewind <span class="glyphicon glyphicon-backward"></span></button></a>
+        </div>
+        <!--  End of Control Buttons -->
+      </div>
+      <div class="col-md-6" id="error-table">
+        <table class="table table-bordered">
+          <thead>
+            <tr>
+              <th>Type</th>
+              <th>Worker</th>
+              <th>Frame</th>
+              <th>Box No.</th>
+              <th>Segment</th>
+              <th>Category</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for worker in errors[video_name]|sort %}
+              {% for error in errors[video_name][worker] %}
+              <tr box-id={{error["reference"] + "-" + error["box_id"]}}>
+                {% if error["type"] == "missing"%}
+                    <td><span class="label label-warning">少</span></td>
+                {%elif error["type"] == "surplus"%}
+                    <td><span class="label label-info">多</span></td>
+                {%elif error["type"] == "unmatched"%}
+                    <td><span class="label label-primary ">非</span></td>
+                {%endif%}
+                <td>{{ worker }}</td>
+                <td>
+                  <a onclick='page_update_seek({{error["start"]}})'>{{error["start"]}}</a> ➡ <a onclick='page_update_seek({{error["end"]}})'>{{error["end"]}}</a>
+                </td>
+                <td>{{ error["box_id"] }}</td>
+                <!-- following not working -->
+                <td><a href="">{{ error.seg }}</a> </td>
+                <!--td>{{ error }}</td-->
+                <td>{{ error.Category }}</td>
 
-<!--   Select Picker for Video and Update Button -->
-<div class="row">  <div class="row"></div>
-  <select id="video-selection" class="selectpicker" style="height:35px;margin-left:15px" onChange="window.document.location.href=this.options[this.selectedIndex].value;">
-    {% for video in videos %}
-      <option value="/?video_name={{video}}">{{video}}</option>
-    {% endfor %}
-  </select>
-  <a href="update"><button type="button" class="btn btn-primary">Update <span class="glyphicon glyphicon-repeat"></button></a>
-</div>
-<!--   End of Select Picker for Video and Update Button -->
+                {%set error_id=[video_name, worker, error["reference"], error["box_id"], error["type"], error["start"], error["end"]]|join("\t")%}
+                <td>
+                  <div class="checkbox">
+                    {%if error_id in check_boxes%}
+                      <label><input type="checkbox" checked data-error="{{error_id}}" data-video={{video_name}} data-master={{worker}} data-reference={{error["reference"]}}  data-id={{error["box_id"]}} data-type={{error["type"]}} data-begin={{error["start"]}} data-end={{error["end"]}}></label>
+                    {%else%}
+                      <label><input type="checkbox" data-error="{{error_id}}" data-video={{video_name}} data-master={{worker}} data-reference={{error["reference"]}}  data-id={{error["box_id"]}} data-type={{error["type"]}} data-begin={{error["start"]}} data-end={{error["end"]}}></label>
+                    {%endif%}
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            {% endfor %}
+          </tbody>
+        </table>
 
-
-
-
+      </div>
+    </div>
+  </div>
 
 <div id="main-row"  class="row">
   <div class="col-md-6" >
   <div data-spy="affix" data-offset-top="50">
-    <h2 > <span class="label label-default"><strong>Frame:</strong> <strong id='frame-num'>{{frame_num}}</strong></span></h2>
-    <svg id = "alert-svg" frame-num="{{frame_num}}" width=100% height=50%>
-
-
-
-
-
-    <!--  Control Buttons -->
-    <div id="buttons">
-      <a id="next-button"><button class="btn btn-primary"> Next <span class="glyphicon glyphicon-arrow-right"></span></button></a>
-      <a id="previous-button"><button class="btn btn-success"> Previous <span class="glyphicon glyphicon-arrow-left"></span></button></a>
-      &nbsp;
-      &nbsp;
-      &nbsp;
-      &nbsp;
-      &nbsp;
-      <a id="play-button"><button class="btn btn-danger"> Play <span class="glyphicon glyphicon-play"></span></button></a>
-      <a id="stop-button"><button class="btn btn-warning"> Pause <span class="glyphicon glyphicon-pause"></span></button></a>
-      <a id="rewind-button"><button class="btn btn-info"> Rewind <span class="glyphicon glyphicon-backward"></span></button></a>
-    </div>
-    <!--  End of Control Buttons -->
-
 
   <!--  Alert Info -->
   <div id="alert-info">
@@ -218,7 +295,7 @@
           </li>
         {% endfor %}
         </ul>
-      {% endif %}
+    {% endif %}
     </div>
 
     <div id="isolation" class="col-md-3">
@@ -233,7 +310,7 @@
           </li>
         {% endfor %}
         </ul>
-      {% endif %}
+    {% endif %}
     </div>
 
   </div>
@@ -245,14 +322,6 @@
 
     <!--  Groupped Erros Info -->
 <div  id = "Errors-info "class="col-md-3">
-  <select id="error-multiple-select" multiple="multiple">
-    <option value='all' single='true'>all</option>
-    <option value='another' single='true'>another</option>
-    {%for class in label%}
-    <!--<option value = '{{class.text}}'>{{class.text}}</option> -->
-    <option value = '{{class}}'>{{class}}</option> 
-    {%  endfor %}
-  </select>
 
   <h2> <span class="label label-danger">Errors</span></h2>
   {% for worker in errors[video_name]|sort %}
