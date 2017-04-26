@@ -616,7 +616,7 @@ function frame_num_offset_frames(frame_num, offset) {
   var new_num = frame_indexs[new_index.toString()];
   if (new_num===undefined) {
     if (offset>0) {
-      new_num = frame_indexs[frame_index.length - 1];
+      new_num = frame_indexs[frame_indexs.length - 1];
     } else if (offset < 0) {
       new_num = frame_indexs[0];
     }
