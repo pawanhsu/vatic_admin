@@ -16,6 +16,7 @@
     <script src="/static/js/bootstrap.min.js" ></script>
     <script src="/static/index.js"></script>
     <link  rel= "stylesheet" href="static/index.css">
+    <link rel= "stylesheet" href="static/seekbar.css">
 
     <!-- bootstrap-multiselect plugin -->
     <script type="text/javascript" src="/static/js/bootstrap-multiselect.js"></script>
@@ -211,8 +212,11 @@
         <h2><span class="label label-default"><strong>Frame:</strong> <strong id='frame-num'>{{frame_num}}</strong></span></h2>
         <svg id="alert-svg" class="svg-content" frame-num="{{frame_num}}" 
           viewBox="0 0 {{video_res.width}} {{video_res.height}}" 
-          preserveAspectRatio="xMinYMin meet" >
+          preserveAspectRatio="xMinYMin meet" > </svg>
         <!--  Control Buttons -->
+        <div id="seekbar-container">
+          <input type="range" id="seekbar" class="seekbar" max="1" step="0.0000001" value="0" onchange="onchange_seekbar(this)" oninput="oninput_seekbar(this)">
+        </div>
         <div id="buttons">
           <a id="previous-button"><button class="btn btn-success"> Previous <span class="glyphicon glyphicon-arrow-left"></span></button></a>
           <a id="next-button"><button class="btn btn-primary"> Next <span class="glyphicon glyphicon-arrow-right"></span></button></a>
@@ -253,8 +257,18 @@
                   <a onclick='page_update_seek({{error["start"]}})'>{{error["start"]}}</a> ➡ <a onclick='page_update_seek({{error["end"]}})'>{{error["end"]}}</a>
                 </td>
                 <td>{{ error["box_id"] }}</td>
+                {% set links = get_target_links(video_name, error["start"], alert) %}
                 <!-- following not working -->
-                <td><a href="">{{ error.seg }}</a> </td>
+                <td>
+                  {% for link in links %}
+                  {% if link[0].split("(")[0] == worker %}
+                  {% set seg_id = link[1].split("id=")[1].split("&")[0] %}
+                  <a href="{{ link[1] }}">
+                    {{ seg_id }}
+                  </a>
+                  {% endif %}
+                  {% endfor %}
+                </td>
                 <!--td>{{ error }}</td-->
                 <td>{{ error.Category }}</td>
 

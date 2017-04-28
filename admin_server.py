@@ -491,7 +491,7 @@ def index():
     users = getUserList()
     return render_template('index.html', label=label, img_url=img_url, videos=videos,frame_num=frame_num,\
         target_links=target_links, alert=alert, errors=errors, video_name=video_name, check_boxes=check_boxes, color_map=color_map,\
-        vatic=VATIC_ADDRESS, users=users, video_res=video_res)
+        vatic=VATIC_ADDRESS, users=users, video_res=video_res, get_target_links=get_target_links)
 
 
 
