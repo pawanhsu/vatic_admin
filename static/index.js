@@ -86,7 +86,6 @@ function page_update_seek(frame){
   var preload_cleanup = "ALL";
   preload_images(video, preload_range, preload_cleanup)
   render_image(frame, video);
-  $("#frame-num").html(frame);
 
   update_alert(new_frame_data["alert"]);
   change_links(new_frame_data["target_links"]);
@@ -403,11 +402,51 @@ function check_buffer(video_name,frame) {
 
 }
 
+function oninput_seekbar(seekbar) {
+  console.log("seekbar on input");
+}
+
+function onchange_seekbar(seekbar) {
+  // console.log("seekbar on change");
+  var total_frame_index = (frame_indexs.length-1);
+  var target_progress = parseFloat(seekbar.value);
+  var target_frame_index = Math.floor(total_frame_index*target_progress);
+  var target_frame_num = frame_indexs[target_frame_index];
+
+  // var cleanup_range = {
+  //   start: preload_status.start,
+  //   end: preload_status.end
+  // }
+  // preload_images_cleanup(cleanup_range);
+  
+  var preload_range = {
+    start: frame_num_offset_frames(target_frame_num, -600),
+    end: frame_num_offset_frames(target_frame_num, 600)
+  }
+  preload_images(preload_status.video_name, preload_range, "ALL");
+  render_image(target_frame_num, preload_status.video_name);
+
+
+
+  console.log(target_progress, target_frame_index);
+}
+
+function update_seekbar(frame) {
+  var seekbar = document.getElementById("seekbar");
+  var current_frame_index = parseInt(frame_num_to_index(frame));
+  var total_frame_index = (frame_indexs.length - 1)
+
+  var progress = current_frame_index / total_frame_index;
+  
+  seekbar.value = progress;
+  // console.log(current_frame_index, total_frame_index, progress);
+}
 
 function render_image(frame, video){
     check_buffer(video,frame);
 
-
+    update_seekbar(frame);
+    $("#frame-num").html(frame);
 
     // var params = { frame:frame, video:video };
     // var img_url = "/image?" + jQuery.param(params);
@@ -464,6 +503,7 @@ function preload_images_cleanup(cleanup) {
   }
 }
 function preload_images(video_name, preload, cleanup) {
+  preload_status.video_name = video_name;
   if (cleanup!=null) {
     preload_images_cleanup(cleanup)
   }
