@@ -80,7 +80,7 @@ function page_update_seek(frame){
 
 
   var preload_range = {
-    start: frame_num_offset_frames(frame,-300), 
+    start: frame_num_offset_frames(frame,-300),
     end: frame_num_offset_frames(frame,300)
   };
   var preload_cleanup = "ALL";
@@ -360,7 +360,7 @@ function get_color_map(){
 function check_buffer(video_name,frame) {
   // console.log(frame, preload_status.start, preload_status.end);
   // default load 20 second at init
-  // and check backward 5 second and forword 5 second 
+  // and check backward 5 second and forword 5 second
   // if not enough, load 10 seconds
   if (preload_status.loading === true) {
     return;
@@ -418,7 +418,7 @@ function onchange_seekbar(seekbar) {
   //   end: preload_status.end
   // }
   // preload_images_cleanup(cleanup_range);
-  
+
   var preload_range = {
     start: frame_num_offset_frames(target_frame_num, -600),
     end: frame_num_offset_frames(target_frame_num, 600)
@@ -437,7 +437,7 @@ function update_seekbar(frame) {
   var total_frame_index = (frame_indexs.length - 1)
 
   var progress = current_frame_index / total_frame_index;
-  
+
   seekbar.value = progress;
   // console.log(current_frame_index, total_frame_index, progress);
 }
@@ -458,7 +458,7 @@ function render_image(frame, video){
         jq_svg.find(lastShowImage).attr("display", "none");
       }
       var image_selector = "#img-" + frame.toString();
-      
+
       var target_image = jq_svg.find(image_selector)
       lastShowImage = image_selector;
       // console.log(target_image)
@@ -592,7 +592,7 @@ $(function() {
     console.log("preloading all images");
     $.ajax({
       url: '/frames?' + $.param({video: video}) ,
-      type: 'GET', 
+      type: 'GET',
       success: function(response) {
         video_frames = response.data;
         frame_indexs = Object.keys(video_frames);
@@ -610,7 +610,7 @@ $(function() {
         render_image(frame, video);
       },
       error: function(error) {
-      
+
       }
     })
 

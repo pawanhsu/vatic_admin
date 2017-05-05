@@ -5,7 +5,7 @@
   {%endfor%}
     <title>Iron Yun Vatic Admin</title>
 
-
+    <link href="static/ironyunsmall.png" rel='icon' type='image/x-icon'/>
     <script src="https://d3js.org/d3.v4.min.js"></script>
     <script src="//cdnjs.cloudflare.com/ajax/libs/tether/1.3.7/js/tether.js"></script>
     <link  rel= "stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/tether/1.3.7/css/tether-theme-arrows-dark.css"</script>
@@ -25,13 +25,13 @@
     <link rel="stylesheet" href="/static/css/bootstrap-multiselect.css" type="text/css"/>
 
     <script>
-      // vatic set 30fps 
+      // vatic set 30fps
       var refresh_interval = 1000 / 30;
       var users = [];
       {% for user in users|sort %}
         users.push("{{user}}");
       {% endfor %}
-      var img_base_path = "{{ vatic }}/frames/" + '{{ users[0] }}' + "_";
+      var img_base_path = "http://172.16.12.91:8892/frames/" + '{{ users[0] }}' + "_";
       var video_frames = {};
       var frame_indexs = [];
       var preload_status = {
@@ -72,7 +72,8 @@
         $.ajax({
           url: '/multiclass_filter',
           data: {
-            'selected_class':select_val.toString()
+            'selected_class':select_val.toString(),
+            'video': $("#video-selection").val().slice(13)
           },
           success: function () {
             location.reload();
@@ -157,6 +158,42 @@
 
       });
 
+      $(document).ready(function(){
+        $("#user-multiple-select").on('change', function() {
+          selected_user = $("#user-multiple-select").val();
+          $(".error_entry").each(function(){
+            if($(this).attr('id') != selected_user){
+              $(this).hide();
+            }
+            else{
+              $(this).show();
+            }
+          })
+        })
+
+      })
+
+      $(document).ready(function(){
+        $("#user-multiple-select").val($("#user-multiple-select option:first").val());
+        selected_user = $("#user-multiple-select").val();
+        $(".error_entry").each(function(){
+          if($(this).attr('id') != selected_user){
+            $(this).hide();
+          }
+          else{
+            $(this).show();
+          }
+        })
+      });
+
+      $(document).ready(function(){
+        $(".segment_click").on('click', function() {
+          link = $(this).parent().parent().next().next().children().attr('href');
+          link = link.replace(/\d+$/, "") + $(this).text()
+          $(this).parent().parent().next().next().children().attr('href',link);
+        })
+
+      })
 
     </script>
   </head>
@@ -172,17 +209,16 @@
 
 <body>
   <div class="container-fluid">
-    <h1>Vatic Admin Prototype 2.0</h1>
-    <div class="row">
+    <h1 style="background: linear-gradient(to bottom right, 	#01AEFB , white);margin:0px;padding:10px 0px 10px 10px;margin-left:-15px; margin-right:-15px">Vatic Admin Prototype 2.0<img src="/static/ironyun.png" alt="Smiley face" height="40" width="160" align="right" style="margin-right:15px"></h1>
+    <div class="row" style="margin-top:27px">
       <div class="col-md-6">
         <!--   Select Picker for Video and Update Button -->
-        <select id="video-selection" class="form-contol" style="height:35px" 
-          onChange="window.document.location.href=this.options[this.selectedIndex].value;">
-            {% for video in videos %}
-              <option value="/?video_name={{video}}">{{video}}</option>
-            {% endfor %}
+        <select id="video-selection" class="selectpicker" style="width:140px;height:35px;margin-left:0px;background-color:white;border-radius: 3px;" onChange="window.document.location.href=this.options[this.selectedIndex].value;">
+          {% for video in videos %}
+            <option value="/?video_name={{video}}">{{video}}</option>
+          {% endfor %}
         </select>
-        <a href="update"><button type="button" class="btn btn-primary">Update <span class="glyphicon glyphicon-repeat"></button></a>
+        <a href="update?video_name={{videos[0]}}"><button type="button" class="btn btn-primary">Update <span class="glyphicon glyphicon-repeat"></button></a>
         <!--   End of Select Picker for Video and Update Button -->
       </div>
       <div class="col-md-2">
@@ -190,9 +226,8 @@
       </div>
       <div class="col-md-4 text-right">
         <select id="user-multiple-select" multiple="multiple">
-          <option value='all' single='true'>all</option>
           {%for user in users%}
-          <option value = '{{user}}'>{{user}}</option> 
+          <option value = '{{user}}' single='true'>{{user}}</option>
           {%  endfor %}
         </select>
 
@@ -201,19 +236,19 @@
           <option value='another' single='true'>another</option>
           {%for class in label%}
           <!--<option value = '{{class.text}}'>{{class.text}}</option> -->
-          <option value = '{{class}}'>{{class}}</option> 
+          <option value = '{{class}}'>{{class}}</option>
           {%  endfor %}
         </select>
       </div>
     </div>
   </div>
 
-  <div class="container-fluid" id="body">
+  <div class="container-fluid" id="body" >
     <div class="row">
-      <div class="col-md-6" id="player">
+      <div class="col-md-6" id="player" style="margin-top:-5px">
         <h2><span class="label label-default"><strong>Frame:</strong> <strong id='frame-num'>{{frame_num}}</strong></span></h2>
-        <svg id="alert-svg" class="svg-content" frame-num="{{frame_num}}" 
-          viewBox="0 0 {{video_res.width}} {{video_res.height}}" 
+        <svg id="alert-svg" class="svg-content" frame-num="{{frame_num}}"
+          viewBox="0 0 {{video_res.width}} {{video_res.height}}"
           preserveAspectRatio="xMinYMin meet" > </svg>
         <!--  Control Buttons -->
         <div id="seekbar-container">
@@ -265,26 +300,13 @@
         <!--  End of Alert Info -->
 
 
-        <!-- Target Links -->
-        <div  class="col-md-6" style="text-align:left;">
-          <br>
-          <ul id ="target-links" class="list-group">
-            {% for user, link in target_links %}
-            <li class="list-group-item">
-              <a href={{link}}>
-                <h4>{{user}}'s Segment  
-                  <span class= "glyphicon glyphicon-hand-right" /> </span>
-                </h4>
-              </a>
-            </li>
-            {% endfor %}
-          </ul>
-        </div>
-        <!-- End of Target Links -->
+
 
 
 
       </div>
+
+
       <div class="col-md-6">
         <div id="error-table">
           <table class="table table-bordered">
@@ -300,9 +322,13 @@
               </tr>
             </thead>
             <tbody>
-              {% for worker in errors[video_name]|sort %}
-                {% for error in errors[video_name][worker] %}
-                <tr box-id={{error["reference"] + "-" + error["box_id"]}}>
+
+
+              {% for worker in errors|sort %}
+
+                {%for error in errors[worker]%}
+                <tr box-id={{error["reference"]}} id = {{worker}} class = "error_entry">
+
                   {% if error["type"] == "missing"%}
                       <td><span class="label label-warning">少</span></td>
                   {%elif error["type"] == "surplus"%}
@@ -310,25 +336,23 @@
                   {%elif error["type"] == "unmatched"%}
                       <td><span class="label label-primary ">非</span></td>
                   {%endif%}
-                  <td>{{ worker }}</td>
-                  <td>
-                    <a onclick='page_update_seek({{error["start"]}})'>{{error["start"]}}</a> ➡ <a onclick='page_update_seek({{error["end"]}})'>{{error["end"]}}</a>
-                  </td>
-                  <td>{{ error["box_id"] }}</td>
-                  {% set links = get_target_links(video_name, error["start"], alert) %}
+                  <td>{{error["reference"]}}</td>
+                  <td><h4> <a onclick='page_update_seek({{error["start"]}})' class="segment_click" style="cursor:pointer">{{error["start"]}}</a> ➡ <a onclick='page_update_seek({{error["end"]}})' class="segment_click" style="cursor:pointer">{{error["end"]}}</h4></td>
+                  <td>{{error["owner"]}}</td>
+
                   <!-- following not working -->
                   <td>
-                    {% for link in links %}
+                    {% for link in target_links %}
                     {% if link[0].split("(")[0] == worker %}
-                    {% set seg_id = link[1].split("id=")[1].split("&")[0] %}
-                    <a href="{{ link[1] }}">
-                      {{ seg_id }}
+
+                    <a href="{{ link[1] }}{{error["start"]}}">
+                      Go to VATIC<br>
                     </a>
                     {% endif %}
                     {% endfor %}
                   </td>
                   <!--td>{{ error }}</td-->
-                  <td>{{ error.Category }}</td>
+                  <td>{{error["label"]}}</td>
 
                   {%set error_id=[video_name, worker, error["reference"], error["box_id"], error["type"], error["start"], error["end"]]|join("\t")%}
                   <td>
@@ -342,68 +366,14 @@
                   </td>
                 </tr>
                 {% endfor %}
+
               {% endfor %}
             </tbody>
           </table>
         </div>
 
-        <!-- LEGACY Groupped Erros Info -->
-        <div  id = "Errors-info "class="col-md-12">
 
-          <h2> <span class="label label-danger">Errors</span></h2>
-          {% for worker in errors[video_name]|sort %}
-            <a href='#'  data-toggle="collapse" data-target="#{{worker}}" ><h3 class="worker-title">{{worker}} <span class="badge">{{errors[video_name][worker]|length}}</span>               <span class = "glyphicon glyphicon-collapse-down" /></h3> </a>
-            <div id={{worker}} class="collapse" >
-
-              <table class="table table-hover">
-                 <thead>
-                   <tr>
-                     <th>Type</th>
-                     <th>Reference</th>
-                     <th>Frame</th>
-                     <th>Box</th>
-                     <th>Check</th>
-
-                   </tr>
-                 </thead>
-                 <tbody>
-                {%for error in errors[video_name][worker]%}
-
-
-                  {% if error["type"] == "missing"%}
-                      <tr box-id={{error["reference"] + "-" + error["box_id"]}}>
-                      <td> <span class="label label-warning">少</span></td>
-                  {%elif error["type"] == "surplus"%}
-                      <tr box-id={{worker + "-" + error["box_id"]}}>
-                      <td><span class="label label-info">多</span></td>
-                  {%elif error["type"] == "unmatched"%}
-                      <tr box-id={{worker + "-" + error["box_id"]}}>
-                      <td><span class="label label-primary ">非</span></td>
-
-                  {%endif%}
-                      <td>{{error["reference"]}}</td>
-                      <td><h4> <a onclick='page_update_seek({{error["start"]}})'>{{error["start"]}}</a> ➡ <a onclick='page_update_seek({{error["end"]}})'>{{error["end"]}}</h4></td>
-                      <td>{{error["box_id"]}}</td>
-                      {%set error_id=[video_name, worker, error["reference"], error["box_id"], error["type"], error["start"], error["end"]]|join("\t")%}
-
-                      <td>
-                        <div class="checkbox">
-                          {%if error_id in check_boxes%}
-                            <label><input type="checkbox" checked data-error="{{error_id}}" data-video={{video_name}} data-master={{worker}} data-reference={{error["reference"]}}  data-id={{error["box_id"]}} data-type={{error["type"]}} data-begin={{error["start"]}} data-end={{error["end"]}}></label>
-                          {%else%}
-                            <label><input type="checkbox" data-error="{{error_id}}" data-video={{video_name}} data-master={{worker}} data-reference={{error["reference"]}}  data-id={{error["box_id"]}} data-type={{error["type"]}} data-begin={{error["start"]}} data-end={{error["end"]}}></label>
-                          {%endif%}
-                        </div>
-                      </td>
-
-                </tr>
-                {%  endfor %}
-                </tbody>
-              </table>
-            </div>
-         {% endfor %}
-        </div>
-        <!--  End of LEGACY Groupped Erros Info -->
+             <!--  End of Groupped Erros Info -->
       </div>
 
     </div>
