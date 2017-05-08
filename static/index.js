@@ -69,6 +69,18 @@ function update_alert(alert){
 
 
 
+function mark_alert_box(object) {
+  var frame = parseInt(object.getAttribute("data-frame"));
+  var alert = object.getAttribute("data-alert");
+  var alert_owner = alert.split("_")[0];
+  var alert_boxno = alert.split("_")[1];
+
+  markedBox = {
+    source: alert_owner,
+    id: alert_boxno
+  };
+  page_update_seek(frame);
+}
 
 
 function page_update_seek(frame){
@@ -281,15 +293,14 @@ function render_boxes(boxes, svg){
              var box_group = svg.append("g").attr("class", "box").attr("id", box["source"] + "-" + box["id"]);
 
 
-
              box_group.append("rect")
-             .attr("x", box['xmin'])
-             .attr("y", box['ymin'])
-             .attr("width", box['xmax'] - box['xmin'])
-             .attr("height", box['ymax'] - box['ymin'])
-             .style("stroke",color_map[box["source"]])
-             .style("stroke-width",3)
-             .style("fill", "none");
+                 .attr("x", box['xmin'])
+                 .attr("y", box['ymin'])
+                 .attr("width", box['xmax'] - box['xmin'])
+                 .attr("height", box['ymax'] - box['ymin'])
+                 .style("stroke",color_map[box["source"]])
+                 .style("stroke-width",3)
+                 .style("fill", "none");
 
 
 
@@ -313,7 +324,7 @@ function render_boxes(boxes, svg){
 
 
 
-             }
+           }
 
 
 
@@ -616,10 +627,12 @@ $(function() {
 
 
 
-    $("tr").not(':first').hover(
-  function () {
-  console.log(this.getAttribute("box-id"));
-  highlight_box(this.getAttribute("box-id"));
+  $(".error_entry").hover(function() {
+    var worker = this.getAttribute("data-worker");
+    var box_id = this.getAttribute("data-box");
+    var alert_box_id = worker + "-" +  box_id;
+    console.log("hover ===>", box_id, worker, alert_box_id);
+    highlight_box(alert_box_id);
   },
   function () {
     show_all_box();

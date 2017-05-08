@@ -1,3 +1,4 @@
+/* scroll error table */
 .affix {
     top:50px;
     position:fixed;
@@ -8,6 +9,7 @@
     overflow: auto;
 }
 
+/* another way for scroll error table */
 /* tr { */
 /* width: 100%; */
 /* display: inline-table; */
@@ -26,3 +28,7 @@
 /*   position: absolute; */
 /* } */
 /*  */
+
+.segment_click {
+  cursor: pointer;
+}
