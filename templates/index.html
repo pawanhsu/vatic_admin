@@ -17,7 +17,6 @@
     <script src="/static/index.js"></script>
     <link  rel= "stylesheet" href="static/index.css">
     <link rel= "stylesheet" href="static/seekbar.css">
-    <link  rel= "stylesheet" href="static/scroll-table.css">
 
 
     <!-- bootstrap-multiselect plugin -->
@@ -31,7 +30,7 @@
       {% for user in users|sort %}
         users.push("{{user}}");
       {% endfor %}
-      var img_base_path = "http://172.16.12.91:8892/frames/" + '{{ users[0] }}' + "_";
+      var img_base_path = "{{ vatic }}/frames/" + '{{ users[0] }}' + "_";
       var video_frames = {};
       var frame_indexs = [];
       var preload_status = {
@@ -40,6 +39,7 @@
         end: 0
       };
       var lastShowImage;
+      var markedBox;
       var initSelectOptions = function(option,container) {
         //TODO: should load option here, and
         $.ajax({
@@ -116,6 +116,20 @@
 
       var exitUserSelectOption = function(event) {
       }
+
+
+      var filterWorker = function(worker) {
+          $(".error_entry").each(function(){
+            var error_worker = $(this).attr('data-worker');
+            if(error_worker != worker){
+              $(this).hide();
+            }
+            else{
+              $(this).show();
+            }
+          })
+      }
+
       $(document).ready(function(){
 
         // init multiple select
@@ -160,30 +174,15 @@
 
       $(document).ready(function(){
         $("#user-multiple-select").on('change', function() {
-          selected_user = $("#user-multiple-select").val();
-          $(".error_entry").each(function(){
-            if($(this).attr('id') != selected_user){
-              $(this).hide();
-            }
-            else{
-              $(this).show();
-            }
-          })
+          var selected_user = $("#user-multiple-select").val();
+          filterWorker(selected_user);
         })
-
       })
 
       $(document).ready(function(){
         $("#user-multiple-select").val($("#user-multiple-select option:first").val());
         selected_user = $("#user-multiple-select").val();
-        $(".error_entry").each(function(){
-          if($(this).attr('id') != selected_user){
-            $(this).hide();
-          }
-          else{
-            $(this).show();
-          }
-        })
+        filterWorker(selected_user);
       });
 
       $(document).ready(function(){
@@ -327,7 +326,9 @@
               {% for worker in errors|sort %}
 
                 {%for error in errors[worker]%}
-                <tr box-id={{error["reference"]}} id = {{worker}} class = "error_entry">
+                {% set box_id = error["owner"].split("_")[1] %}
+                <tr data-worker="{{worker}}" data-box="{{box_id}}" 
+                  data-id class = "error_entry">
 
                   {% if error["type"] == "missing"%}
                       <td><span class="label label-warning">少</span></td>
@@ -337,7 +338,19 @@
                       <td><span class="label label-primary ">非</span></td>
                   {%endif%}
                   <td>{{error["reference"]}}</td>
-                  <td><h4> <a onclick='page_update_seek({{error["start"]}})' class="segment_click" style="cursor:pointer">{{error["start"]}}</a> ➡ <a onclick='page_update_seek({{error["end"]}})' class="segment_click" style="cursor:pointer">{{error["end"]}}</h4></td>
+                  <td>
+                    <h4>
+                      <a onclick='mark_alert_box(this)'
+                        data-frame="{{error["start"]}}"
+                        data-alert="{{error["owner"]}}"
+                        class="segment_click">{{error["start"]}}</a>
+                      ➡ 
+                      <a onclick='mark_alert_box(this)' 
+                        data-frame="{{error["end"]}}"
+                        data-alert="{{error["owner"]}}"
+                        class="segment_click">{{error["end"]}}</a>
+                    </h4>
+                  </td>
                   <td>{{error["owner"]}}</td>
 
                   <!-- following not working -->

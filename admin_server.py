@@ -247,7 +247,7 @@ def index():
 
 
     return render_template('index.html', label=LABELS, img_url=img_url, videos=videos, frame_num=frame_num,
-        target_links=target_links, errors=annotation.errors, \
+        target_links=target_links, errors=annotation.errors, vatic=VATIC_ADDRESS, \
         video_name=video, check_boxes=check_boxes, color_map=color_map, users=annotation.workers,video_res = video_res)
 
 
