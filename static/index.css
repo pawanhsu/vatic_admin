@@ -2,3 +2,27 @@
     top:50px;
     position:fixed;
 }
+
+#error-table {
+    height: calc(100% - 215px - 20px);
+    overflow: auto;
+}
+
+/* tr { */
+/* width: 100%; */
+/* display: inline-table; */
+/* table-layout: fixed; */
+/* } */
+/*  */
+/* table{ */
+/*  height:300px;              // <-- Select the height of the table */
+/*   height: auto; */
+/*   display: -moz-groupbox;    // Firefox Bad Effect */
+/* } */
+/* tbody{ */
+/*   overflow-y: scroll; */
+/*   height: 250px;            //  <-- Select the height of the body */
+/*   width: 100%; */
+/*   position: absolute; */
+/* } */
+/*  */

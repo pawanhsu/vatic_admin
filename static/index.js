@@ -76,6 +76,21 @@ function page_update_seek(frame){
   var video = $("#video-selection").val().slice(13);
 
 
+  var new_frame_data = video_frames[frame];
+
+
+  var preload_range = {
+    start: frame_num_offset_frames(frame,-300),
+    end: frame_num_offset_frames(frame,300)
+  };
+  var preload_cleanup = "ALL";
+  preload_images(video, preload_range, preload_cleanup)
+  render_image(frame, video);
+
+  update_alert(new_frame_data["alert"]);
+  change_links(new_frame_data["target_links"]);
+
+  /*
     $.ajax({
         url: "/seek",
         data:  {"frame":frame, "video":video},
@@ -97,19 +112,42 @@ function page_update_seek(frame){
 
         }
     });
-
-
+  */
 }
 
 
 
 
 function page_update(url){
-  var frame = $("#frame-num").html();
-
+  var frame = parseInt($("#frame-num").html());
   var video = $("#video-selection").val().slice(13);
 
+  if (url === "/next") {
+    frame = frame_num_offset_frames(frame,1);
+    // frame = frame + 1;
+  } else if (url == "/previous") {
+    frame = frame_num_offset_frames(frame,-1);
+    // frame = frame - 1;
+  } else {
+    console.err("not imp");
+    return ;
+  }
 
+  if (!video_frames.hasOwnProperty(frame)) {
+    console.log("end or out of range");
+    stop();
+    return;
+  }
+  var new_frame_data = video_frames[frame]
+
+  render_image(frame, video);
+  $("#frame-num").html(frame);
+
+  update_alert(new_frame_data["alert"]);
+  change_links(new_frame_data["target_links"]);
+
+
+  /*
     $.ajax({
         url: url,
 
@@ -130,8 +168,7 @@ function page_update(url){
 
         }
     });
-
-
+  */
 }
 
 function next_update(){
@@ -149,16 +186,20 @@ function previous_update(){
 }
 
 function play(){
-    clearInterval(rewind_ID);
-    if (play_ID == 0){
-    play_ID  = setInterval(function(){page_update("/next");}, 100);
+  clearInterval(rewind_ID);
+  if (play_ID == 0){
+    play_ID  = setInterval(function(){
+      page_update("/next");
+    }, refresh_interval);
   }
 }
 
 function rewind(){
-    clearInterval(play_ID);
-    if (rewind_ID == 0){
-    rewind_ID = setInterval(function(){page_update("/previous");}, 100);
+  clearInterval(play_ID);
+  if (rewind_ID == 0){
+    rewind_ID = setInterval(function(){
+      page_update("/previous");
+    }, refresh_interval);
   }
 }
 
@@ -316,24 +357,112 @@ function get_color_map(){
 }
 
 
+function check_buffer(video_name,frame) {
+  // console.log(frame, preload_status.start, preload_status.end);
+  // default load 20 second at init
+  // and check backward 5 second and forword 5 second
+  // if not enough, load 10 seconds
+  if (preload_status.loading === true) {
+    return;
+  }
+  var should_buffer_back = frame_num_offset_frames(frame, -150);
+  should_buffer_back = parseInt(should_buffer_back);
+  var should_buffer_foword = frame_num_offset_frames(frame, 150);
+  should_buffer_foword = parseInt(should_buffer_foword);
+  // console.log(preload_status.start, should_buffer_back);
+  if (preload_status.start > should_buffer_back) {
+    console.log("back buffer not enough");
+    var load_range = {
+      start: frame_num_offset_frames(preload_status.start,-300),
+      end: frame_num_offset_frames(preload_status.start,-1)
+    }
+    var cleanup_range = {
+      start: frame_num_offset_frames(preload_status.end,-300),
+      end: preload_status.end.toString()
+    }
+    console.log(load_range);
+    console.log(cleanup_range);
+    preload_images(video_name,load_range, cleanup_range);
+  }
+  // console.log(preload_status.end, should_buffer_foword);
+  if (preload_status.end < should_buffer_foword) {
+    console.log("foword buffer not enough");
+    var load_range = {
+      start: frame_num_offset_frames(preload_status.end,1),
+      end: frame_num_offset_frames(preload_status.end,300)
+    }
+    var cleanup_range = {
+      start: preload_status.start.toString(),
+      end: frame_num_offset_frames(preload_status.start,300)
+    }
+    console.log(load_range);
+    console.log(cleanup_range);
+    preload_images(video_name,load_range, cleanup_range);
+  }
 
+}
+
+function oninput_seekbar(seekbar) {
+  console.log("seekbar on input");
+}
+
+function onchange_seekbar(seekbar) {
+  // console.log("seekbar on change");
+  var total_frame_index = (frame_indexs.length-1);
+  var target_progress = parseFloat(seekbar.value);
+  var target_frame_index = Math.floor(total_frame_index*target_progress);
+  var target_frame_num = frame_indexs[target_frame_index];
+
+  // var cleanup_range = {
+  //   start: preload_status.start,
+  //   end: preload_status.end
+  // }
+  // preload_images_cleanup(cleanup_range);
+
+  var preload_range = {
+    start: frame_num_offset_frames(target_frame_num, -600),
+    end: frame_num_offset_frames(target_frame_num, 600)
+  }
+  preload_images(preload_status.video_name, preload_range, "ALL");
+  render_image(target_frame_num, preload_status.video_name);
+
+
+
+  console.log(target_progress, target_frame_index);
+}
+
+function update_seekbar(frame) {
+  var seekbar = document.getElementById("seekbar");
+  var current_frame_index = parseInt(frame_num_to_index(frame));
+  var total_frame_index = (frame_indexs.length - 1)
+
+  var progress = current_frame_index / total_frame_index;
+
+  seekbar.value = progress;
+  // console.log(current_frame_index, total_frame_index, progress);
+}
 
 function render_image(frame, video){
+    check_buffer(video,frame);
 
+    update_seekbar(frame);
+    $("#frame-num").html(frame);
 
-
-
-
-    var params = { frame:frame, video:video };
-    var img_url = "/image?" + jQuery.param(params);
-    console.log(img_url)
+    // var params = { frame:frame, video:video };
+    // var img_url = "/image?" + jQuery.param(params);
+    var img_url = frame_to_path(video, frame)
+    // console.log(img_url)
       var svg = d3.select("#alert-svg");
+      var jq_svg = $("#alert-svg");
+      if (lastShowImage !== undefined) {
+        jq_svg.find(lastShowImage).attr("display", "none");
+      }
+      var image_selector = "#img-" + frame.toString();
 
-      svg.append("image")
-      .attr("xlink:href", img_url)
-      .attr("x", "0")
-      .attr("y", "0");
-
+      var target_image = jq_svg.find(image_selector)
+      lastShowImage = image_selector;
+      // console.log(target_image)
+      target_image.attr("display","");
 
 
        $.ajax({
@@ -353,8 +482,100 @@ function render_image(frame, video){
        });
      }
 
+function preload_images_cleanup(cleanup) {
+  var jq_svg = $("#alert-svg");
+  if (typeof(cleanup)==="object") {
+    var frame_start_value = cleanup.start;
+    var frame_end_value = cleanup.end;
+  }
+  for (var frame in video_frames) {
+    var frame_value = parseInt(frame);
+    if (cleanup === "ALL") {
+      //console.log("remove all cache");
+    } else if (frame_value < frame_start_value) {
+      continue;
+    } else if (frame_value >  frame_end_value) {
+      break;
+    }
+    var image_selector = "#img-" + frame.toString();
+    var target_image = jq_svg.find(image_selector)
+    target_image.remove();
+  }
+}
+function preload_images(video_name, preload, cleanup) {
+  preload_status.video_name = video_name;
+  if (cleanup!=null) {
+    preload_images_cleanup(cleanup)
+  }
+  console.log("preload image:", preload)
+  var svg = d3.select("#alert-svg");
+  var frame_start_value = parseInt(preload.start);
+  var frame_end_value = parseInt(preload.end);
+  preload_status.loading = true;
+  if (cleanup==null || cleanup === "ALL") {
+    preload_status.start = parseInt(frame_start_value);
+    preload_status.end = parseInt(frame_end_value);
+  } else {
+    console.log(cleanup.start, cleanup.end);
+    console.log(preload_status.start, preload_status.end)
+    if (parseInt(cleanup.start) === preload_status.start) {
+      preload_status.start = parseInt(cleanup.end);
+      preload_status.end = parseInt(frame_end_value);
+    } else if (parseInt(cleanup.end) === preload_status.end) {
+      preload_status.start = parseInt(frame_start_value);
+      preload_status.end = parseInt(cleanup.start);
+    } else {
+      console.error("unknown");
+    }
+  }
+  preload_status.loading_array = [];
+
+  for (var frame in video_frames) {
+    var frame_value = parseInt(frame);
+    if (frame_value < frame_start_value) {
+      continue;
+    }
+    if (frame_value >  frame_end_value) {
+      break;
+    }
+    preload_status.loading_array[frame_value] = false;
+  }
+
+  for (var frame in video_frames) {
+    var frame_value = parseInt(frame);
+    if (frame_value < frame_start_value) {
+      // console.log("skip this frame", frame);
+      continue;
+    }
+    if (frame_value >  frame_end_value) {
+      // console.log("break on this frame", frame);
+      break;
+    }
+    //console.log(frame)
+    var img_url = frame_to_path(video_name, frame)
+
+    // console.log(img_url)
+    svg.append("image")
+      .attr("xlink:href", img_url)
+      .attr("x", "0")
+      .attr("y", "0")
+      .attr("display", "none")
+      .attr("id", "img-"+frame)
+      .attr("onload", function() {
+        preload_status.loading_array[frame_value] = true;
+        for (var load_index in preload_status.loading_array) {
+          if (preload_status.loading_array[load_index] === false) {
+            return;
+          }
+        }
+        preload_status.loading = false;
+        console.log("all done");
+      });
+  }
+}
 
 $(function() {
+    // init function here
     color_map = get_color_map();
 
     $('#next-button').click(next_update);
@@ -368,9 +589,31 @@ $(function() {
     var video = $("#video-selection").val().slice(13);
 
 
+    console.log("preloading all images");
+    $.ajax({
+      url: '/frames?' + $.param({video: video}) ,
+      type: 'GET',
+      success: function(response) {
+        video_frames = response.data;
+        frame_indexs = Object.keys(video_frames);
+        console.log(response);
+        // alert("start load images");
+        // 30fps * 20 second = 600
+        var preload_end = frame_num_offset_frames(frame, 600);
+        var preload_range = {
+          start: frame,
+          end: preload_end
+        }
+        var cleanup_range = null;
+        preload_images(video,preload_range,cleanup_range);
 
+        render_image(frame, video);
+      },
+      error: function(error) {
 
-    render_image(frame, video);
+      }
+    })
+
 
 
     $("tr").not(':first').hover(
@@ -393,3 +636,30 @@ $(function() {
 
 
 })
+
+
+// some low level function for genernator very basic values
+function frame_to_path(video_name, frame_num) {
+  dir_A = Math.floor(frame_num / 10000).toString();
+  dir_B = Math.floor(frame_num / 100).toString();
+  path = [img_base_path + video_name, dir_A, dir_B, frame_num + ".jpg" ]
+
+  return path.join("/");
+}
+
+function frame_num_to_index(frame_num) {
+  return frame_indexs.indexOf(frame_num.toString());
+}
+function frame_num_offset_frames(frame_num, offset) {
+  var current_index = parseInt(frame_num_to_index(frame_num));
+  var new_index = current_index + parseInt(offset);
+  var new_num = frame_indexs[new_index.toString()];
+  if (new_num===undefined) {
+    if (offset>0) {
+      new_num = frame_indexs[frame_indexs.length - 1];
+    } else if (offset < 0) {
+      new_num = frame_indexs[0];
+    }
+  }
+  return new_num;
+}
