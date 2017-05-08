@@ -17,7 +17,6 @@
     <script src="/static/index.js"></script>
     <link  rel= "stylesheet" href="static/index.css">
     <link rel= "stylesheet" href="static/seekbar.css">
-    <link  rel= "stylesheet" href="static/scroll-table.css">
 
 
     <!-- bootstrap-multiselect plugin -->
@@ -31,7 +30,7 @@
       {% for user in users|sort %}
         users.push("{{user}}");
       {% endfor %}
-      var img_base_path = "http://172.16.12.91:8892/frames/" + '{{ users[0] }}' + "_";
+      var img_base_path = "{{ vatic }}/frames/" + '{{ users[0] }}' + "_";
       var video_frames = {};
       var frame_indexs = [];
       var preload_status = {
