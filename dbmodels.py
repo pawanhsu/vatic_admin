@@ -205,6 +205,7 @@ class User(Base):
     __tablename__ = 'users'
 
     id = Column(String(50), primary_key=True)
+    token = Column(String(30))
     username = Column(String(50))
     password = Column(String(50))
     priority = Column(Integer, nullable=False, server_default=text("'0'"))

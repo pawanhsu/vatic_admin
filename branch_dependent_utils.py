@@ -63,11 +63,13 @@ def get_workers(user_map):
 
 
 def get_user_map(MAP_PATH="vatic-docker/data/user_map.json"):
-
+    global ADMIN_NAME
     user_map = json.load(open(MAP_PATH))
 
     target_video_names = set()
     for user in user_map:
+        if user == ADMIN_NAME:
+            continue
         for video_name in user_map[user]:
             target_video_names.add(video_name)
 
@@ -86,12 +88,13 @@ def get_assignments(user_map):
 
 
     for user in default_user_map:
+        if user == ADMIN_NAME:
+            continue
         for video in default_user_map[user]:
             TXT_path = "./vatic-docker/data/query/{}_{}.txt".format(user, video)
             if video not in assignments:
                 assignments[video] = {}
             assignments[video][user] = TXT_path
-
 
 
     return assignments
@@ -113,5 +116,5 @@ def dump_user_map():
     print(" ".join(CMD))
     call(CMD)
 
-
+ADMIN_NAME = "Max"
 user_map = get_user_map()

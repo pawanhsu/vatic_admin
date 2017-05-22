@@ -20,7 +20,8 @@ from PIL import Image
 from annotation import Annotation
 from config import *
 from branch_dependent_utils import *
-from dbio_Inf import *
+from create_admin_video import *
+from sqlalchemy import desc
 
 
 
@@ -205,34 +206,28 @@ def index():
     global check_box_DB
     global annotations
     videos = get_videos(user_map)
-    print(request.args)
+
     if request.args.has_key("video_name"):
-        print(videos)
         video = request.args['video_name']
-        print("hahahaha: {}".format(video))
+        #print("hahahaha: {}".format(video))
         videos.remove(video)
         videos.insert(0, video)
-        user_name = session.query(User).first().username
-        video_res = session.query(Video).filter(Video.slug == user_name + '_' + video).first()
-        video_res = {'height':video_res.height,'width':video_res.width}
-        print(1111)
-        print(video_res)
-
+        #user_name = session.query(User).first().username
     else:
         video = videos[0]
-        user_name = session.query(User).first().username
-        print(video)
-        video_res = session.query(Video).filter(Video.slug == user_name + '_' + video).first()
-        video_res = {'height':video_res.height,'width':video_res.width}
-        print(22222)
-        print(video_res)
+        #user_name = session.query(User).first().username
 
+    segments = []
     frame_num = 0
     img_url = get_img_url(video, frame_num)
     annotation = annotations[video]
-    print(annotation.video)
 
-
+    for worker in annotation.workers:
+        worker_video = session.query(Video).filter(Video.slug == worker + '_' + video).first()
+        segment = session.query(Segment).filter(Segment.videoid == worker_video.id)
+        segments.append({'worker': worker, "segment": segment})
+        video_obj = session.query(Video).filter(Video.slug == worker + '_' + video).first()
+        video_res = {'height':video_obj.height,'width':video_obj.width}
 
     target_links = get_target_links(video, frame_num)
     check_boxes = {}
@@ -240,15 +235,24 @@ def index():
         error_id = error_data["error_id"]
         check_boxes[error_id] = 1
 
+    check_boxes_segment = {}
+    for error_data in check_box_DB_segment.all():
+        segment_id = error_data["segment_id"]
+        check_boxes_segment[segment_id] = 1
+
+
+    admin_video = session.query(Video).filter(Video.userid == 'max.hsu@ironyun.com', Video.slug == 'Max_'+video).order_by(desc(Video.id)).first()
+
+    if admin_video != None:
+        admin_segment = session.query(Segment).filter(Segment.videoid == admin_video.id).order_by(Segment.start)
+    else:
+        admin_segment = []
     #label = session.query(Label).distinct(Label.text).group_by(Label.text)
     #label = ['car' , 'person']
-
-
-
-
     return render_template('index.html', label=LABELS, img_url=img_url, videos=videos, frame_num=frame_num,
         target_links=target_links, errors=annotation.errors, vatic=VATIC_ADDRESS, \
-        video_name=video, check_boxes=check_boxes, color_map=color_map, users=annotation.workers,video_res = video_res)
+        video_name=video, check_boxes=check_boxes, check_boxes_segment=check_boxes_segment,color_map=color_map, users=annotation.workers,video_res = video_res, \
+        segments = segments, admin_segment = admin_segment)
 
 
 @app.route('/frames', methods=['GET'])
@@ -306,22 +310,59 @@ def get_frame():
 @app.route('/box_check')
 def box_check():
     global check_box_DB
+    global check_box_DB_segment
     if request.method == 'GET':
-        error_id = request.args['id']
-        action = request.args['action']
+        error_type = request.args['type']
+        if(error_type == 'error'):
+            error_id = request.args['id']
+            action = request.args['action']
 
-        if action == "insert":
-            check_box_DB.insert({"error_id":error_id})
-            print("Insert {} into DB".format(error_id))
-            return jsonify(condition="successfully insert")
+            #segment_id = request.args['segmentid']
+            if action == "insert":
+                check_box_DB.insert({"error_id":error_id})
+                print("Insert {} into DB".format(error_id))
+                return jsonify(condition="successfully insert")
 
-        elif action == "remove":
-            query = Query()
-            check_box_DB.remove(query.error_id==error_id)
-            print("Remove {} from DB".format(error_id))
+            elif action == "remove":
+                query = Query()
+                check_box_DB.remove(query.error_id==error_id)
+                print("Remove {} from DB".format(error_id))
+                return jsonify(condition="successfully remove")
+        elif(error_type == 'segment'):
+            segment_id = request.args['segmentid']
+            action = request.args['action']
+            video_name = request.args['videoname']
 
-            return jsonify(condition="successfully remove")
+            if action == "insert":
+                check_box_DB_segment.insert({"segment_id":segment_id,"videoname":video_name})
+                print("Insert {} into DB".format(segment_id))
+                return jsonify(condition="successfully insert")
+            elif action == "remove":
+                query = Query()
+                check_box_DB_segment.remove(query.segment_id==segment_id)
+                print("Remove {} from DB".format(segment_id))
+                return jsonify(condition="successfully remove")
 
+
+@app.route('/dump_segment')
+def dump_segment():
+    if request.method == 'GET':
+        video = request.args['video_name']
+        create_admin_video(video_name=video)
+
+        return jsonify(condition="successfully dump segments")
+
+
+
+
+
+def get_annotations():
+    user_map = get_user_map()
+    assignments = get_assignments(user_map)
+
+    annotations = {video: Annotation(assignment, video) for video, assignment in assignments.items()}
+
+    return annotations
 
 
 
@@ -339,4 +380,5 @@ if __name__ == "__main__":
     workers = get_workers(user_map)
     color_map = get_color_map(workers)
     check_box_DB =  TinyDB("check_box_db.json")
-    app.run(host='0.0.0.0',debug=DEBUG,threaded=True, port=PORT)
+    check_box_DB_segment = TinyDB("check_box_db_segment.json")
+    app.run(host='0.0.0.0',debug=DEBUG,threaded=False, port=PORT)

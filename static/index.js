@@ -30,7 +30,9 @@ function update_wrong_number(alert){
 }
 
 
-
+function get_video_frame(frame){
+  return video_frames[frame];
+}
 
 
 
@@ -51,16 +53,6 @@ function update_isolation(alert){
   }
 
   }
-
-
-
-
-
-
-
-
-
-
 
 function update_alert(alert){
   update_wrong_number(alert);
@@ -229,15 +221,36 @@ function stop(){
 play_ID = 0;
 rewind_ID = 0;
 
+function dump_segment(video){
+  $.ajax({
+     url: "/dump_segment",
+     type: 'GET',
+     data: {
+       'video_name': video,
+     },
+     success: function(html){
 
-function check_fire(error_data){
+       $("#processing").css({"height":"225px","width":"300px","left":"42%","top":"33%"})
+       $("#processing").attr("src","static/success.gif");
+       setTimeout(function(){
+         window.location.reload(1);
+       }, 1700);
 
-  console.log(error_data);
+
+     }
+  });
+}
+
+
+function check_fire(data){
+
+  console.log(data);
   $.ajax({
      url: "/box_check",
      type: 'GET',
-     data: error_data
+     data: data
            });
+
 
 }
 
@@ -256,18 +269,43 @@ function box_events(){
 
   error_data = {"video":video, "master":master, "reference": reference,"box_id":box_id, "type":type, "begin":begin,"end":end}
   */
-  error_id = $(this).data("error");
-  error_data = {"id": error_id};
+  if($(this).hasClass("error_checkbox")){
 
+    error_id = $(this).data("error");
+    data = {"type": "error","id": error_id};
 
+    if($(this).is(":checked")){
+      data["action"] = "insert"
+      check_fire(data);
 
-  if($(this).is(":checked")){
-    error_data["action"] = "insert"
-    check_fire(error_data);
+    }
+    else {
+      data["action"] = "remove"
+      check_fire(data);
+
+    }
   }
-  else {
-    error_data["action"] = "remove"
-    check_fire(error_data);
+
+  else if($(this).hasClass("segment_checkbox")){
+    segment_id = $(this).data("segmentid");
+    video_name = $(this).data("videoname");
+    name_segment = $(this).attr('name');
+    data = {"type":"segment", "segmentid": segment_id, "videoname": video_name};
+    segment_autocancel_id = $(".segment_checkbox[name="+name_segment+"]").not(this).data("segmentid");
+    data_autocancel = {"type":"segment", "segmentid":segment_autocancel_id,"videoname":video_name};
+    if($(this).is(":checked")){
+      data["action"] = "insert";
+      check_fire(data);
+      data_autocancel["action"] = "remove";
+      check_fire(data_autocancel);
+
+    }
+    else {
+      data["action"] = "remove";
+      check_fire(data);
+
+    }
+
 
   }
 }
@@ -278,11 +316,6 @@ function box_events(){
 
 
 function render_boxes(boxes, svg){
-
-
-
-
-
 
 
            d3.selectAll("g.box").remove();
@@ -595,6 +628,7 @@ $(function() {
     $('#rewind-button').click(rewind);
     $('#stop-button').click(stop)
     $("input:checkbox").change(box_events);
+    $("input:radio").change(box_events);
 
     var frame = parseInt($('#alert-svg').attr("frame-num"));
     var video = $("#video-selection").val().slice(13);
