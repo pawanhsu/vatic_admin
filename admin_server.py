@@ -251,6 +251,14 @@ def index():
         video_name=video, check_boxes=check_boxes, color_map=color_map, users=annotation.workers,video_res = video_res)
 
 
+
+@app.route('/users')
+def user_manage():
+
+    users = session.query(User).all()
+
+    return render_template('user.html', users=users, vatic=VATIC_ADDRESS)
+
 @app.route('/frames', methods=['GET'])
 def get_frame():
 
@@ -323,7 +331,79 @@ def box_check():
             return jsonify(condition="successfully remove")
 
 
+@app.route('/verify_email')
+def verify_email():
+    print("verify mail")
+    from mail import sendmail
+    from hashlib import sha1
+    from time import gmtime, strftime
+   
+    mail = request.args.get('mail')
+    if mail == None or mail == "":
+        return render_template("verify_resend.html")
 
+    registered_users = session.query(User).filter(User.priority==0)
+    user = None
+    for current_user in registered_users:
+        if current_user.id == mail:
+            user = current_user
+            break
+
+    if user==None:
+        message = "user not found."
+        return render_template("verify.html", info=message)
+
+    if user.verification == True:
+        message = "your email address has already been verified."
+        return render_template("verify.html", info=message)
+
+    now = strftime("%Y-%m-%d %H:%M:%S", gmtime())
+    token = sha1(now + "auth").hexdigest()
+
+    update_user = session.query(User).filter(User.id == mail).\
+            update({'token': token})
+    session.commit()
+
+    token_url = "http://"+EXT_ADDR+":"+str(PORT)+"/verify_email_input?token=" + token
+
+    receivers = mail
+    receiver_name = "vatic user"
+    subject = 'Vatic - email confirm'
+
+    content = render_template("mail_confirm.html", token_url = token_url)
+    content_type = 'html'
+
+    if sendmail(receivers, receiver_name, subject, content, content_type):
+        message = "check out your mail inbox to verify the email address."
+        return render_template("verify.html", info=message)
+
+    else:
+        message = "unable to send mail."
+        return render_template("verify.html", info=message)
+
+@app.route('/verify_email_input')
+def verify_email_input():
+    token = request.args.get('token')
+    if token == None or token == "":
+        message = "No required auth token input."
+        return render_template("verify.html", info=message)
+
+    user = list(session.query(User).filter(User.token == token))
+
+    if len(user) == 0:
+        
+        message = "Token invalid. Go to <a href='/verify_email'>re-send page</a> to resend verification mail."
+        return render_template("verify.html", info=message, vatic=VATIC_ADDRESS)
+
+    if user[0].verification == True:
+        message = "You has already verified your email address."
+        return render_template("verify.html", info=message)
+
+    user = session.query(User).filter(User.token == token).\
+            update({'verification': True})
+    session.commit()
+    message = "email verification is succeed."
+    return render_template("verify.html", info=message)
 
 if __name__ == "__main__":
     #dump_user_map()

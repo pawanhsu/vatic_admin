@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block head %}
+  <style>
+    #content-main {
+      height: 100%;
+    }
+    #content-header {
+      height: 150px;
+    }
+  </style>
+{% endblock %}
+
+{% block body %}
+  <div class="container" id="content-main">
+    <div class="row" id="content-header">
+
+    </div>
+    <div class="row" id="content-body">
+      <div class="col-md-8 col-md-offset-2">
+        <div class="panel panel-default">
+          <div class="panel-heading">
+            Vatic email verify
+          </div>
+          <form class="panel-body" id="panel-content">
+            <div class="form-group">
+              <label for="exampleInputEmail1">E-Mail</label>
+              <input type="text" class="form-control" id="form_mail" placeholder="Your email" name="mail">
+            </div>
+            <div class="text-center">
+              <button type="submit" class="btn btn-primary" >Resend verify email</button>
+            </form>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
