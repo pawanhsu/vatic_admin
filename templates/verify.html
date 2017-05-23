@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block head %}
+  <style>
+    #content-main {
+      height: 100%;
+    }
+    #content-header {
+      height: 150px;
+    }
+  </style>
+  <script>
+    var vatic="{{ vatic }}";
+
+    var sendmail = function(mail) {
+      var data = {"mail": mail}
+      $.ajax({ 
+        type: "POST",
+        url: vatic + "/server/verify_email/",
+        data: JSON.stringify(data),
+        success: function(resp) {
+          if (resp.success === true) {
+            alert("send success: " + resp.message);
+          } else {
+            alert("send failed: " + resp.message);
+          }
+          // $("#panel-content").html(resp.message);
+        }
+      }).fail(function() {
+          alert("send mail failed");
+          // $("#panel-content").html("Failed to send verify mail.");
+      });
+    }
+  </script>
+{% endblock %}
+
+{% block body %}
+  <div class="container" id="content-main">
+    <div class="row" id="content-header">
+
+    </div>
+    <div class="row" id="content-body">
+      <div class="col-md-8 col-md-offset-2">
+        <div class="panel panel-default">
+          <div class="panel-heading">
+            Vatic email verify
+          </div>
+          <div class="panel-body" id="panel-content">
+
+            {{ info | safe }}
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

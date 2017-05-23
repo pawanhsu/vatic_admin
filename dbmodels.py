@@ -1,5 +1,5 @@
 # coding: utf-8
-from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, LargeBinary, String, Table, Text, text
+from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, LargeBinary, String, Table, Text, text, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -208,7 +208,9 @@ class User(Base):
     token = Column(String(30))
     username = Column(String(50))
     password = Column(String(50))
-    priority = Column(Integer, nullable=False, server_default=text("'0'"))
+    priority = Column(Integer, nullable=False, default =  0)
+    token = Column(String(50), unique = True, default = None)
+    verification = Column(Boolean, nullable=False, default = False)
 
 
 class Video(Base):
