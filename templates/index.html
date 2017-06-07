@@ -39,6 +39,7 @@
         end: 0
       };
       var lastShowImage;
+      var markedBox;
       var initSelectOptions = function(option,container) {
         //TODO: should load option here, and
         $.ajax({
@@ -115,6 +116,23 @@
 
       var exitUserSelectOption = function(event) {
       }
+
+      var exitsegmentSelectOption = function(event) {
+      }
+
+
+      var filterWorker = function(worker) {
+          $(".error_entry").each(function(){
+            var error_worker = $(this).attr('data-worker');
+            if(error_worker != worker){
+              $(this).hide();
+            }
+            else{
+              $(this).show();
+            }
+          })
+      }
+
       $(document).ready(function(){
 
         // init multiple select
@@ -137,7 +155,18 @@
           buttonWidth: '150px',
           nonSelectedText: 'Select User'
         }
+
         $('#user-multiple-select').multiselect(userSelectOption);
+        var segmentSelectOption = {
+          onChange: changeOptionCheck,
+          onInitialized: initSelectOptions,
+          onDropdownHide: exitsegmentSelectOption,
+          // includeSelectAllOption: true,
+          buttonWidth: '150px',
+          maxHeight:'350',
+          nonSelectedText: 'Select Segment'
+        }
+        $('#segment-multiple-select').multiselect(segmentSelectOption);
 
         /* old selector
         $("#select_class").change(function(){
@@ -157,45 +186,131 @@
 
       });
 
+
+
+
+
       $(document).ready(function(){
         $("#user-multiple-select").on('change', function() {
-          selected_user = $("#user-multiple-select").val();
-          $(".error_entry").each(function(){
-            if($(this).attr('id') != selected_user){
-              $(this).hide();
-            }
-            else{
-              $(this).show();
-            }
-          })
+          var selected_user = $("#user-multiple-select").val();
+          filterWorker(selected_user);
         })
-
       })
 
       $(document).ready(function(){
         $("#user-multiple-select").val($("#user-multiple-select option:first").val());
         selected_user = $("#user-multiple-select").val();
-        $(".error_entry").each(function(){
-          if($(this).attr('id') != selected_user){
-            $(this).hide();
-          }
-          else{
-            $(this).show();
-          }
-        })
+        filterWorker(selected_user);
       });
 
       $(document).ready(function(){
+        $("#segment-multiple-select").on('change', function() {
+
+          var selected_segment = $("#segment-multiple-select").val();
+          var segment_length = parseInt($('#segment-multiple-select option').eq(2).val());
+
+
+          $(".error_entry").show();
+          var selected_user = $("#user-multiple-select").val();
+          filterWorker(selected_user);
+          if(selected_segment != 'all'){
+            start = parseInt($(this).val())
+
+            $(".segment_start").each(function(){
+              if(parseInt($(this).text())< start || parseInt($(this).text()) >= start + segment_length){
+                $(this).parent().parent().parent().hide()
+              }
+            });
+          }
+        })
+      })
+
+      $(document).ready(function(){
         $(".segment_click").on('click', function() {
-          link = $(this).parent().parent().next().next().children().attr('href');
-          link = link.replace(/\d+$/, "") + $(this).text()
-          $(this).parent().parent().next().next().children().attr('href',link);
+
+          var cur_user = $('#user-multiple-select').val();
+          var frame_info = get_video_frame($(this).text());
+          for(i = 0; i < frame_info["target_links"].length; i++){
+            if(frame_info["target_links"][i].toString().match(cur_user)){
+              var link = frame_info["target_links"][i].toString().substring(cur_user.toString().length + 1)
+              $(this).parent().parent().next().next().children().attr('href',link);
+            }
+
+          }
         })
 
       })
 
+
+      function popupOpenClose(popup) {
+
+	       /* Add div inside popup for layout if one doesn't exist */
+	        if ($(".wrapper").length == 0){
+		          $(popup).wrapInner("<div class='wrapper'></div>");
+	           }
+
+	            /* Open popup */
+	        $(popup).show(500);
+
+	         /* Close popup if user clicks on background */
+	        $(popup).click(function(e) {
+		          if ( e.target == this ) {
+			             if ($(popup).is(':visible')) {
+                     $('body>*').css("filter","");
+				                 $(popup).hide(300);
+			              }
+		          }
+	        });
+
+	         /* Close popup and remove errors if user clicks on cancel or close buttons */
+	       $(popup).find("button[name=close]").on("click", function() {
+		         if ($(".formElementError").is(':visible')) {
+        			   $(".formElementError").remove();
+		         }
+             $('body>*').css("filter","");
+		         $(popup).hide(300);
+	       });
+       }
+
+       $(document).ready(function () {
+	        $("[data-js=open]").on("click", function() {
+		          popupOpenClose($("#segment_selector"));
+              $('body>*:not(#segment_selector)').css("filter","blur(5px)");
+	           });
+             $("[data-js1=open]").on("click", function() {
+   		          popupOpenClose($("#dumped_video"));
+                 $('body>*:not(#dumped_video)').css("filter","blur(5px)");
+   	           });
+       });
+
+
+
     </script>
-  </head>
+    <style>
+    label span {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 1px solid #aaa;
+  border-radius: 3px;
+  cursor: pointer;
+  text-align: center;
+  vertical-align: middle;
+  line-height: 20xp;
+}
+
+label .segment_checkbox {
+  display: none;
+}
+
+label .segment_checkbox:checked + span:before {
+  content: '✔';
+  display: inline-block;
+  font-size: 14px;
+}
+    </style>
+
+</head>
 
 
 
@@ -214,16 +329,23 @@
         <!--   Select Picker for Video and Update Button -->
         <select id="video-selection" class="selectpicker" style="width:140px;height:35px;margin-left:0px;background-color:white;border-radius: 3px;" onChange="window.document.location.href=this.options[this.selectedIndex].value;">
           {% for video in videos %}
-            <option value="/?video_name={{video}}">{{video}}</option>
+            <option value="/?video_name={{video}}" >{{video}}</option>
           {% endfor %}
         </select>
         <a href="update?video_name={{videos[0]}}"><button type="button" class="btn btn-primary">Update <span class="glyphicon glyphicon-repeat"></button></a>
         <!--   End of Select Picker for Video and Update Button -->
       </div>
-      <div class="col-md-2">
+      <div class="col-md-1">
         <h3 style="margin-top: 10px;">Error List</h3>
       </div>
-      <div class="col-md-4 text-right">
+      <div class="col-md-5 text-right">
+        <select id="segment-multiple-select" multiple="multiple">
+          <option value='all' single='true'>all</option>
+          {%for segment in segments[0]["segment"]%}
+          <option value = '{{segment.start}}' single='true'>segment{{ loop.index }}</option>
+          {%  endfor %}
+        </select>
+
         <select id="user-multiple-select" multiple="multiple">
           {%for user in users%}
           <option value = '{{user}}' single='true'>{{user}}</option>
@@ -238,9 +360,81 @@
           <option value = '{{class}}'>{{class}}</option>
           {%  endfor %}
         </select>
+        <button data-js="open" type="button" class="btn btn-default">Segment Selector</button>
+        <button data-js1="open" type="button" class="btn btn-default">Dumped Video</button>
       </div>
     </div>
   </div>
+
+  <script>
+    function confirm_dump() {
+      var video_name = $("#video-selection>option:selected").text()
+      var r = confirm("Are you sure to dump the segments?\nThis will erase the previous dumped segments.");
+      if (r == true) {
+          $('#processing').show();
+          $('#processing').css("filter","")
+          $('#segment_selector').css("filter","blur(5px)");
+          dump_segment(video_name)
+        }
+
+      }
+  </script>
+
+
+  <img id="processing" src="static/loader.gif" hidden style = "height:70px;width:70px;position: fixed;top:40%;left:48%;z-index:50000">
+
+  <div id="segment_selector" class="popup container">
+  	<h2 style="margin-top:0px">Segment Selector</h2>
+    <div class="row" style="margin-top:10px;">
+
+      <div style="overflow-y: scroll;">
+        <div class="col-md-6" style="height:80%;margin-top:-10px;" >
+          <h3>user1</h3>
+          <hr style="margin:0px">
+          {%for segment in segments[0]["segment"]%}
+          {%if segment.id|string in check_boxes_segment%}
+          <h5 style="padding:5px">{{segments[0]["worker"]}}'s segment{{ loop.index }}&nbsp<label><input type="radio" name = "segment{{ loop.index }}" checked class="segment_checkbox" data-videoname="{{video_name}}" data-segmentid = "{{segment.id}}"><span></span></label></h5>
+          {%else%}
+          <h5 style="padding:5px">{{segments[0]["worker"]}}'s segment{{ loop.index }}&nbsp<label><input type="radio" name = "segment{{ loop.index }}" class="segment_checkbox" data-videoname="{{video_name}}" data-segmentid = "{{segment.id}}"><span></span></label></h5>
+          {%endif%}
+          {%  endfor %}
+        </div>
+        <div class="col-md-6" style="height:80%;margin-top:-10px;">
+          <h3>user2</h3>
+          <hr style="margin:0px">
+
+          {%for segment in segments[1]["segment"]%}
+          {%if segment.id|string in check_boxes_segment%}
+          <h5 style="padding:5px">{{segments[1]["worker"]}}'s segment{{ loop.index }}&nbsp<label><input type="radio" checked name = "segment{{ loop.index }}" class="segment_checkbox" data-videoname="{{video_name}}" data-segmentid = "{{segment.id}}"><span></span></label></h5>
+          {%else%}
+          <h5 style="padding:5px">{{segments[1]["worker"]}}'s segment{{ loop.index }}&nbsp<label><input type="radio" name = "segment{{ loop.index }}" class="segment_checkbox" data-videoname="{{video_name}}" data-segmentid = "{{segment.id}}"><span></span></label></h5>
+          {%endif%}
+          {%  endfor %}
+        </div>
+    </div>
+      <button onclick="confirm_dump()" type="button" class="btn btn-default" style="margin:10px;margin-top:30px;">Dump</button>
+      <button name="close" type="button" class="btn btn-default" style="margin:10px;margin-top:30px">Close</button>
+  </div>
+
+  </div>
+
+  <div id="dumped_video" class="popup container" style="height:600px;width:450px;left: calc(50% - 200px);">
+    <h2 style="margin-top:0px">Dumped Video</h2>
+    <h3 style="margin-top:0px">{{videos[0]}}</h3>
+    <div class="row" style="margin-top:10px;height:70%;overflow-y: scroll">
+
+
+        {%for admin_segment in admin_segment %}
+        <a href="http://localhost:8892/?id={{admin_segment["id"]}}&hitId=offline" style="font-size:18px">Admin's segment{{ loop.index }}</a>
+        <br>
+        {%  endfor %}
+
+    </div>
+    <button name="close" type="button" class="btn btn-default" style="margin:10px;margin-top:30px">Close</button>
+
+
+  </div>
+
 
   <div class="container-fluid" id="body" >
     <div class="row">
@@ -306,7 +500,7 @@
       </div>
 
 
-      <div class="col-md-6">
+
         <div id="error-table">
           <table class="table table-bordered">
             <thead>
@@ -326,7 +520,9 @@
               {% for worker in errors|sort %}
 
                 {%for error in errors[worker]%}
-                <tr box-id={{error["reference"]}} id = {{worker}} class = "error_entry">
+                {% set box_id = error["owner"].split("_")[1] %}
+                <tr data-worker="{{worker}}" data-box="{{box_id}}"
+                  data-id class = "error_entry">
 
                   {% if error["type"] == "missing"%}
                       <td><span class="label label-warning">少</span></td>
@@ -336,7 +532,19 @@
                       <td><span class="label label-primary ">非</span></td>
                   {%endif%}
                   <td>{{error["reference"]}}</td>
-                  <td><h4> <a onclick='page_update_seek({{error["start"]}})' class="segment_click" style="cursor:pointer">{{error["start"]}}</a> ➡ <a onclick='page_update_seek({{error["end"]}})' class="segment_click" style="cursor:pointer">{{error["end"]}}</h4></td>
+                  <td>
+                    <h4>
+                      <a onclick='mark_alert_box(this)'
+                        data-frame="{{error["start"]}}"
+                        data-alert="{{error["owner"]}}"
+                        class="segment_click segment_start">{{error["start"]}}</a>
+                      ➡
+                      <a onclick='mark_alert_box(this)'
+                        data-frame="{{error["end"]}}"
+                        data-alert="{{error["owner"]}}"
+                        class="segment_click">{{error["end"]}}</a>
+                    </h4>
+                  </td>
                   <td>{{error["owner"]}}</td>
 
                   <!-- following not working -->
@@ -357,9 +565,9 @@
                   <td>
                     <div class="checkbox">
                       {%if error_id in check_boxes%}
-                        <label><input type="checkbox" checked data-error="{{error_id}}" data-video={{video_name}} data-master={{worker}} data-reference={{error["reference"]}}  data-id={{error["box_id"]}} data-type={{error["type"]}} data-begin={{error["start"]}} data-end={{error["end"]}}></label>
+                        <label><input type="checkbox" class="error_checkbox" checked data-error="{{error_id}}" data-video={{video_name}} data-master={{worker}} data-reference={{error["reference"]}}  data-id={{error["box_id"]}} data-type={{error["type"]}} data-begin={{error["start"]}} data-end={{error["end"]}}></label>
                       {%else%}
-                        <label><input type="checkbox" data-error="{{error_id}}" data-video={{video_name}} data-master={{worker}} data-reference={{error["reference"]}}  data-id={{error["box_id"]}} data-type={{error["type"]}} data-begin={{error["start"]}} data-end={{error["end"]}}></label>
+                        <label><input type="checkbox" class="error_checkbox" data-error="{{error_id}}" data-video={{video_name}} data-master={{worker}} data-reference={{error["reference"]}}  data-id={{error["box_id"]}} data-type={{error["type"]}} data-begin={{error["start"]}} data-end={{error["end"]}}></label>
                       {%endif%}
                     </div>
                   </td>
@@ -377,6 +585,7 @@
 
     </div>
   </div>
+
 
 <!-- <img src="{{ url_for('video_frame', frame_number='0', video_name='jacksonhole.mp4') }}" alt="Smiley face" height="100" width="100"> -->
 </body>

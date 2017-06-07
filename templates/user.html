@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %} - User Manage{% endblock %}
+
+{% block head %}
+{% endblock %}
+
+{% block body %}
+  <div class="container">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>id</th>
+          <th>uaername</th>
+          <th>priority</th>
+          <th>verification</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for user in users %}
+        <tr>
+          <td>{{ user.id }}</td>
+          <td>{{ user.username }}</td>
+          <td>{{ user.priority }}</td>
+          <td>
+            {% if user.verification %}
+            activated
+            {% else %}
+            not activate (<a href="/verify_email?mail={{user.id}}">resend</a>)
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}
