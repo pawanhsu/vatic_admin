@@ -205,12 +205,13 @@ class User(Base):
     __tablename__ = 'users'
 
     id = Column(String(50), primary_key=True)
-    token = Column(String(30))
     username = Column(String(50))
     password = Column(String(50))
     priority = Column(Integer, nullable=False, default =  0)
-    token = Column(String(50), unique = True, default = None)
+    token = Column(String(50), nullable=True, unique = True, default = None)
     verification = Column(Boolean, nullable=False, default = False)
+    forgetPasswordToken = Column(String(50), nullable=True, unique = True, default = None)
+    forgetPasswordTokenExpireTime = Column(DateTime, nullable=True, default=None)
 
 
 class Video(Base):
