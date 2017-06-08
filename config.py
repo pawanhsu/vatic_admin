@@ -42,4 +42,4 @@ smtp_sender_name = 'admin'
 
 smtp_encoding = 'utf-8'
 
-ALLOW_IP = ["192.168.168.1","192.168.168.67"]
+ALLOW_IP = ["192.168.168.1","192.168.168.67", "*"]

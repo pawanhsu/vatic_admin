@@ -449,7 +449,7 @@ def verify_email_input():
 
 @app.route('/reset')
 def reset_password():
-    if not request.remote_addr in ALLOW_IP:
+    if not request.remote_addr in ALLOW_IP or "*" in ALLOW_IP:
         message = "not allow to use this function"
         return render_template("forget_message.html", info=message)
     mail = request.args.get('mail')
