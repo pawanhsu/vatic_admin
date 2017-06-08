@@ -493,7 +493,7 @@ def reset_password():
         message = "unable to send mail."
         return render_template("forget_message.html", info=message)
 
-@app.route('/reset_input')
+@app.route('/reset_input', methods=['GET', 'POST'])
 def reset_input():
     token = request.args.get('token')
     if token == None or token == "":
@@ -508,7 +508,7 @@ def reset_input():
         message = "Token invalid. Go to <a href='/reset'>re-send page</a> to resend verification mail."
         return render_template("forget_message.html", info=message)
 
-    new_pass = request.args.get('password')
+    new_pass = request.form.get('password')
     if new_pass== None or new_pass == "":
         return render_template("forget_set.html", token=token, username=user[0].username)
 
