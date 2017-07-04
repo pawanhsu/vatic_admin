@@ -72,8 +72,11 @@ app = Flask(__name__)
 app.debug = False
 import os
 from flask import send_from_directory
+from flask_sqlalchemy import SQLAlchemy
 
+app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://postgres:1111@localhost/boxcheck"
 
+db = SQLAlchemy(app)
 
 
 
@@ -200,6 +203,7 @@ def multiclass_filter():
     return redirect("./?video_name={}".format(video))
 
 
+
 @app.route('/')
 def index():
 
@@ -230,11 +234,18 @@ def index():
         video_res = {'height':video_obj.height,'width':video_obj.width}
 
     target_links = get_target_links(video, frame_num)
-    check_boxes = {}
-    for error_data in check_box_DB.all():
-        error_id = error_data["error_id"]
-        check_boxes[error_id] = 1
 
+    check_boxes = {}
+    checkbox_errors = error_checkbox.query.all()
+
+    for checkbox in checkbox_errors:
+        error = checkbox.video_name + '\t' + checkbox.box_owner + '\t' + \
+                checkbox.box_reference + '\t\t' + checkbox.error_type + '\t' + \
+                str(checkbox.error_begin) + '\t' + str(checkbox.error_end)
+        check_boxes[error] = 1
+
+    print(check_boxes)
+    #{u'A2Streetnight.mp4\tSponge\tSpooky\tsurplus\t0\t66': 1, u'A2Streetnight.mp4\tSponge\tSpooky\tsurplus\t0\t59': 1, u'A2Streetnight.mp4\tSponge\tpwan\tsurplus\t0\t59': 1}
     check_boxes_segment = {}
     for error_data in check_box_DB_segment.all():
         segment_id = error_data["segment_id"]
@@ -249,7 +260,7 @@ def index():
         admin_segment = []
     #label = session.query(Label).distinct(Label.text).group_by(Label.text)
     #label = ['car' , 'person']
-    return render_template('index.html', label=LABELS, img_url=img_url, videos=videos, frame_num=frame_num,
+    return render_template('index.html', checkbox_errors=checkbox_errors,label=LABELS, img_url=img_url, videos=videos, frame_num=frame_num,
         target_links=target_links, errors=annotation.errors, vatic=VATIC_ADDRESS, \
         video_name=video, check_boxes=check_boxes, check_boxes_segment=check_boxes_segment,color_map=color_map, users=annotation.workers,video_res = video_res, \
         segments = segments, admin_segment = admin_segment)
@@ -314,29 +325,50 @@ def get_frame():
 
 
 
+from checkbox_models import error_checkbox,segment_checkbox
 
 @app.route('/box_check')
 def box_check():
     global check_box_DB
     global check_box_DB_segment
     if request.method == 'GET':
-        error_type = request.args['type']
-        if(error_type == 'error'):
+        op_type = request.args['type']
+        if(op_type == 'error'):
             error_id = request.args['id']
             action = request.args['action']
 
             #segment_id = request.args['segmentid']
             if action == "insert":
-                check_box_DB.insert({"error_id":error_id})
+                #checkbox = checkbox()
+
+                #check_box_DB.insert({"error_id":error_id})
+                error_arr = error_id.split()
+                error = error_checkbox(error_arr[0],error_arr[1],error_arr[2],error_arr[3],error_arr[4],error_arr[5])
+                db.session.add(error)
+                db.session.commit()
+
+
                 print("Insert {} into DB".format(error_id))
                 return jsonify(condition="successfully insert")
 
             elif action == "remove":
-                query = Query()
-                check_box_DB.remove(query.error_id==error_id)
+                error_arr = error_id.split()
+                if(len(error_arr) == 7):
+                    error = error_checkbox.query.filter_by(video_name = error_arr[0],box_owner = error_arr[1],\
+                    box_reference = error_arr[2], error_type = error_arr[3], error_begin = error_arr[4],\
+                    error_end = error_arr[5]).delete()
+                else:
+                    error = error_checkbox.query.filter_by(video_name = error_arr[0],box_owner = error_arr[1],\
+                    box_reference = error_arr[2], error_type = error_arr[3], error_begin = error_arr[4],\
+                    error_end = error_arr[5]).delete()
+                db.session.commit()
+                db.session.close()
+
                 print("Remove {} from DB".format(error_id))
                 return jsonify(condition="successfully remove")
-        elif(error_type == 'segment'):
+
+
+        elif(op_type == 'segment'):
             segment_id = request.args['segmentid']
             action = request.args['action']
             video_name = request.args['videoname']
@@ -378,7 +410,7 @@ def verify_email():
     from mail import sendmail
     from hashlib import sha1
     from time import gmtime, strftime
-   
+
     mail = request.args.get('mail')
     if mail == None or mail == "":
         return render_template("verify_resend.html")
@@ -432,7 +464,7 @@ def verify_email_input():
     user = list(session.query(User).filter(User.token == token))
 
     if len(user) == 0:
-        
+
         message = "Token invalid. Go to <a href='/verify_email'>re-send page</a> to resend verification mail."
         return render_template("verify.html", info=message, vatic=VATIC_ADDRESS)
 

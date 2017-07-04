@@ -141,8 +141,8 @@
           onInitialized: initSelectOptions,
           onDropdownHide: exitSelectOption,
           // includeSelectAllOption: true,
-          buttonWidth: '150px',
-          nonSelectedText: 'Select Error Type'
+          buttonWidth: '110px',
+          nonSelectedText: 'Error Type'
         }
         $('#error-multiple-select').multiselect(errorSelectOption);
 
@@ -152,7 +152,7 @@
           onInitialized: initSelectOptions,
           onDropdownHide: exitUserSelectOption,
           // includeSelectAllOption: true,
-          buttonWidth: '150px',
+          buttonWidth: '90px',
           nonSelectedText: 'Select User'
         }
 
@@ -162,9 +162,9 @@
           onInitialized: initSelectOptions,
           onDropdownHide: exitsegmentSelectOption,
           // includeSelectAllOption: true,
-          buttonWidth: '150px',
+          buttonWidth: '90px',
           maxHeight:'350',
-          nonSelectedText: 'Select Segment'
+          nonSelectedText: 'Segment'
         }
         $('#segment-multiple-select').multiselect(segmentSelectOption);
 
@@ -287,27 +287,7 @@
 
     </script>
     <style>
-    label span {
-  display: inline-block;
-  width: 20px;
-  height: 20px;
-  border: 1px solid #aaa;
-  border-radius: 3px;
-  cursor: pointer;
-  text-align: center;
-  vertical-align: middle;
-  line-height: 20xp;
-}
 
-label .segment_checkbox {
-  display: none;
-}
-
-label .segment_checkbox:checked + span:before {
-  content: '✔';
-  display: inline-block;
-  font-size: 14px;
-}
     </style>
 
 </head>
@@ -336,10 +316,10 @@ label .segment_checkbox:checked + span:before {
         <!--   End of Select Picker for Video and Update Button -->
       </div>
       <div class="col-md-1">
-        <h3 style="margin-top: 10px;">Error List</h3>
+        <h3 style="margin-top: 10px;">Error list</h3>
       </div>
       <div class="col-md-5 text-right">
-        <select id="segment-multiple-select" multiple="multiple">
+        <select id="segment-multiple-select" multiple="multiple" >
           <option value='all' single='true'>all</option>
           {%for segment in segments[0]["segment"]%}
           <option value = '{{segment.start}}' single='true'>segment{{ loop.index }}</option>
@@ -360,8 +340,8 @@ label .segment_checkbox:checked + span:before {
           <option value = '{{class}}'>{{class}}</option>
           {%  endfor %}
         </select>
-        <button data-js="open" type="button" class="btn btn-default">Segment Selector</button>
-        <button data-js1="open" type="button" class="btn btn-default">Dumped Video</button>
+        <button data-js="open" type="button" class="btn btn-default" style="width:130px">Segment Selector</button>
+        <button data-js1="open" type="button" class="btn btn-default" style="width:110px">Dumped Video</button>
       </div>
     </div>
   </div>
@@ -425,7 +405,7 @@ label .segment_checkbox:checked + span:before {
 
 
         {%for admin_segment in admin_segment %}
-        <a href="http://localhost:8892/?id={{admin_segment["id"]}}&hitId=offline" style="font-size:18px">Admin's segment{{ loop.index }}</a>
+        <a href="http://172.16.12.91:8892/?id={{admin_segment["id"]}}&hitId=offline" style="font-size:18px">Admin's segment{{ loop.index }}</a>
         <br>
         {%  endfor %}
 
@@ -490,6 +470,7 @@ label .segment_checkbox:checked + span:before {
           </div>
 
         </div>
+
         <!--  End of Alert Info -->
 
 
@@ -572,6 +553,8 @@ label .segment_checkbox:checked + span:before {
                     </div>
                   </td>
                 </tr>
+
+
                 {% endfor %}
 
               {% endfor %}

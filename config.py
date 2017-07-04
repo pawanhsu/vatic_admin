@@ -3,7 +3,7 @@ import os
 
 PORT = 5001
 DEBUG = True
-CONTAINER_NAME = "vatic_new"
+CONTAINER_NAME = "VATIC"
 
 #Admin info
 ADMIN_NAME = "Max"
@@ -32,12 +32,12 @@ smtp_tls=True
 ## Gmail 需啟用 [允許安全性較低的應用程式] 設定處於啟用狀態
 ## URL: https://myaccount.google.com/lesssecureapps
 ## 或是啟用 2FA 後，使用應用程式專用密碼登入
-smtp_user="username@gmail.com"
-smtp_pass="password"
- 
+smtp_user="pawanhsu@gmail.com"
+smtp_pass="xwlrhauvhmiinnjt"
+
 ## Gmail 的寄件地址必須與登入帳號相同
 ## 或是帳戶中加入「以這個地址寄送郵件」
-smtp_sender = 'username@gmail.com'
-smtp_sender_name = 'admin'
+smtp_sender = ''
+smtp_sender_name = ''
 
 smtp_encoding = 'utf-8'

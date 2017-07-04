@@ -13,20 +13,22 @@ def sendmail(receiver, receiver_name, subject, content, content_type = "plain"):
     message['From'] = formataddr((str(Header(smtp_sender_name, smtp_encoding)) ,smtp_sender))
     message['To']   = formataddr((str(Header(receiver_name, smtp_encoding)) ,receiver))
     message['Subject'] = Header(subject, 'utf-8')
-     
-    try:
-        smtpObj = smtplib.SMTP() 
-        smtpObj.connect(smtp_host, smtp_port)
-        if (smtp_tls):
-            smtpObj.ehlo()
-            smtpObj.starttls()
 
-        smtpObj.login(smtp_user,smtp_pass)  
+    try:
+        smtpObj = smtplib.SMTP()
+
+        smtpObj =smtplib.SMTP_SSL('smtp.gmail.com', 465)
+        #smtpObj.connect(smtp_host, smtp_port)
+
+        smtpObj.ehlo()
+        #smtpObj.starttls()
+
+        smtpObj.login(smtp_user,smtp_pass)
         smtpObj.sendmail(smtp_sender, receiver, message.as_string())
-        #  print("成功寄信")
+        print("成功寄信")
         return True
     except smtplib.SMTPException as error:
-        #  print(error)
+        print(error)
         return False
 
 
@@ -42,6 +44,7 @@ def call():
     receivers = mail
     receiver_name = "User"
     subject = 'Python SMTP Test'
+
 
     content = "Hello world!"
     content_type = 'plain'
