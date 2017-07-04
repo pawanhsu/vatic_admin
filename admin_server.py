@@ -22,6 +22,10 @@ from config import *
 from branch_dependent_utils import *
 from create_admin_video import *
 from sqlalchemy import desc
+from mail import sendmail
+from hashlib import sha1
+from time import gmtime, strftime
+import datetime
 
 
 
@@ -407,9 +411,11 @@ def get_annotations():
 @app.route('/verify_email')
 def verify_email():
     print("verify mail")
+
     from mail import sendmail
     from hashlib import sha1
     from time import gmtime, strftime
+
 
     mail = request.args.get('mail')
     if mail == None or mail == "":
@@ -431,7 +437,7 @@ def verify_email():
         return render_template("verify.html", info=message)
 
     now = strftime("%Y-%m-%d %H:%M:%S", gmtime())
-    token = sha1(now + "auth").hexdigest()
+    token = sha1(now + "user " + user.id + "auth").hexdigest()
 
     update_user = session.query(User).filter(User.id == mail).\
             update({'token': token})
@@ -477,6 +483,82 @@ def verify_email_input():
     session.commit()
     message = "email verification is succeed."
     return render_template("verify.html", info=message)
+
+@app.route('/reset')
+def reset_password():
+    if not request.remote_addr in ALLOW_IP or "*" in ALLOW_IP:
+        message = "not allow to use this function"
+        return render_template("forget_message.html", info=message)
+    mail = request.args.get('mail')
+    if mail == None or mail == "":
+        return render_template("forget_find.html")
+
+    registered_users = session.query(User).filter(User.priority==0)
+    user = None
+    for current_user in registered_users:
+        if current_user.id == mail:
+            user = current_user
+            break
+
+    if user==None:
+        message = "user not found."
+        return render_template("forget_message.html", info=message)
+
+    now = strftime("%Y-%m-%d %H:%M:%S", gmtime())
+    token = sha1(now + "user" + user.id + "reset").hexdigest()
+
+    expire_time = datetime.datetime.now() + datetime.timedelta(minutes = 30)
+    update_user = session.query(User).filter(User.id == mail).\
+            update({'forgetPasswordToken': token })
+    update_user = session.query(User).filter(User.id == mail).\
+            update({'forgetPasswordTokenExpireTime': expire_time})
+    session.commit()
+
+    token_url = "http://"+EXT_ADDR+":"+str(PORT)+"/reset_input?token=" + token
+
+    receivers = mail
+    receiver_name = "vatic user"
+    subject = 'Vatic - password reset'
+
+    content = render_template("mail_reset.html", token_url = token_url)
+    content_type = 'html'
+
+    if sendmail(receivers, receiver_name, subject, content, content_type):
+        message = "check out your mail inbox to reset your password."
+        return render_template("forget_message.html", info=message)
+
+    else:
+        message = "unable to send mail."
+        return render_template("forget_message.html", info=message)
+
+@app.route('/reset_input', methods=['GET', 'POST'])
+def reset_input():
+    token = request.args.get('token')
+    if token == None or token == "":
+        message = "No required reset token input."
+        return render_template("forget_message.html", info=message)
+
+    user = list(session.query(User) \
+            .filter(User.forgetPasswordToken == token) \
+            .filter(User.forgetPasswordTokenExpireTime >= datetime.datetime.now()))
+
+    if len(user) == 0:
+        message = "Token invalid. Go to <a href='/reset'>re-send page</a> to resend verification mail."
+        return render_template("forget_message.html", info=message)
+
+    new_pass = request.form.get('password')
+    if new_pass== None or new_pass == "":
+        return render_template("forget_set.html", token=token, username=user[0].username)
+
+    user = session.query(User) \
+            .filter(User.forgetPasswordToken == token) \
+            .filter(User.forgetPasswordTokenExpireTime >= datetime.datetime.now()) \
+            .update({'password': new_pass, 'forgetPasswordToken': None, 'forgetPasswordTokenExpireTime': None})
+    session.commit()
+    message = "password update successful."
+    return render_template("forget_message.html", info=message)
+
+
 
 if __name__ == "__main__":
     #dump_user_map()

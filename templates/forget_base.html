@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block head %}
+  <style>
+    #content-main {
+      height: 100%;
+    }
+    #content-header {
+      height: 150px;
+    }
+  </style>
+  <script>
+    var vatic="{{ vatic }}";
+
+  </script>
+{% endblock %}
+
+{% block body %}
+  <div class="container" id="content-main">
+    <div class="row" id="content-header">
+
+    </div>
+    <div class="row" id="content-body">
+      <div class="col-md-8 col-md-offset-2">
+        <div class="panel panel-default">
+          <div class="panel-heading">
+            Vatic forget password
+          </div>
+          <div class="panel-body" id="panel-content">
+
+            {% block content %}{% endblock %}
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

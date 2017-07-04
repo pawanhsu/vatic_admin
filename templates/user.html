@@ -14,6 +14,7 @@
           <th>uaername</th>
           <th>priority</th>
           <th>verification</th>
+          <th>forget password</th>
         </tr>
       </thead>
       <tbody>
@@ -28,6 +29,9 @@
             {% else %}
             not activate (<a href="/verify_email?mail={{user.id}}">resend</a>)
             {% endif %}
+          </td>
+          <td>
+            <a href="/reset?mail={{user.id}}">reset</a>
           </td>
         </tr>
       {% endfor %}
