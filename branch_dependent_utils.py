@@ -17,7 +17,7 @@ def DUMP_TXT_DATA(video_name='all', output_dir="data/query"):
         vatic_path = "/root/vatic"
         output_path = "{}/{}.txt".format(output_dir, video)
         merge_cmd = "--merge --merge-threshold 0.5"
-        inside_cmd = "cd {}; turkic dump {} -o {} {}".format(vatic_path, video, output_path, merge_cmd)
+        #inside_cmd = "cd {}; turkic dump {} -o {} {}".format(vatic_path, video, output_path, merge_cmd)
         #cmd = ['docker', 'exec', CONTAINER_NAME, "/bin/bash", '-c', inside_cmd]
         #print(" ".join(cmd))
         #call(cmd)
@@ -37,6 +37,7 @@ def get_target_links(video_name, frame_num):
     for user in sorted(default_user_map):
         if video_name not in default_user_map[user]:
         	continue
+        print(default_user_map[user])
         pivot = default_user_map[user][video_name][N_segment].find("?")
 
         if N_segment > 1 and frame_num % K_FRAME < OFFSET:
@@ -51,7 +52,6 @@ def get_target_links(video_name, frame_num):
             base_link = "{}/{}".format(VATIC_ADDRESS, default_user_map[user][video_name][N_segment][pivot:])
             final_link = "{}&frame={}".format(base_link, OFFSET_segment)
             links.append((user, final_link))
-
 
     return sorted(links)
 
