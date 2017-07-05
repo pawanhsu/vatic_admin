@@ -1,6 +1,8 @@
 from config import *
 import json
 from subprocess import call
+from dbconnect import *
+from dbmodels import *
 
 #Dump the annotaton from the given video
 def DUMP_TXT_DATA(video_name='all', output_dir="data/query"):
@@ -25,10 +27,15 @@ def DUMP_TXT_DATA(video_name='all', output_dir="data/query"):
 
 #Need Modification
 def get_target_links(video_name, frame_num):
+
     links = []
 
+    video = session.query(Video).filter(Video.slug.contains(video_name)).first()
+    first_segment = session.query(Segment).filter(Segment.videoid == video.id).first()
+    nframe = int(first_segment.stop - 21 - first_segment.start)
 
-    N_segment = frame_num / K_FRAME
+
+    N_segment = frame_num / nframe
     OFFSET_segment = frame_num
 
     default_user_map = user_map["default"]
@@ -37,10 +44,9 @@ def get_target_links(video_name, frame_num):
     for user in sorted(default_user_map):
         if video_name not in default_user_map[user]:
         	continue
-        print(default_user_map[user])
         pivot = default_user_map[user][video_name][N_segment].find("?")
 
-        if N_segment > 1 and frame_num % K_FRAME < OFFSET:
+        if N_segment > 1 and frame_num % nframe < OFFSET:
             base_link = "{}/{}".format(VATIC_ADDRESS, default_user_map[user][video_name][N_segment-1][pivot:])
             final_link = "{}&frame={}".format(base_link, OFFSET_segment)
             links.append((user+'(A)', final_link))

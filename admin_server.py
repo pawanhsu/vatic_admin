@@ -237,8 +237,8 @@ def index():
         video_obj = session.query(Video).filter(Video.slug == worker + '_' + video).first()
         video_res = {'height':video_obj.height,'width':video_obj.width}
 
-    target_links = get_target_links(video, frame_num)
-
+    #target_links = get_target_links(video, frame_num)
+    target = {}
     check_boxes = {}
     checkbox_errors = error_checkbox.query.all()
 
@@ -564,7 +564,7 @@ if __name__ == "__main__":
     #dump_user_map()
     EXT_ADDR = os.environ.get('EXTERNAL_ADDRESS')
     if EXT_ADDR == None:
-        EXT_ADDR = "172.16.12.91"
+        EXT_ADDR = "172.16.22.51"
     VATIC_ADDRESS = "http://"+EXT_ADDR+":8892"
     DUMP_TXT_DATA()
     user_map = get_user_map()
