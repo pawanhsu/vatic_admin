@@ -256,7 +256,7 @@ def index():
         check_boxes_segment[segment_id] = 1
 
 
-    admin_video = session.query(Video).filter(Video.userid == 'max.hsu@ironyun.com', Video.slug == 'Max_'+video).order_by(desc(Video.id)).first()
+    admin_video = session.query(Video).filter(Video.user_id == 'max.hsu@ironyun.com', Video.slug == 'Max_'+video).order_by(desc(Video.id)).first()
 
     if admin_video != None:
         admin_segment = session.query(Segment).filter(Segment.videoid == admin_video.id).order_by(Segment.start)

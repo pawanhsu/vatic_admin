@@ -18,9 +18,9 @@ def DUMP_TXT_DATA(video_name='all', output_dir="data/query"):
         output_path = "{}/{}.txt".format(output_dir, video)
         merge_cmd = "--merge --merge-threshold 0.5"
         inside_cmd = "cd {}; turkic dump {} -o {} {}".format(vatic_path, video, output_path, merge_cmd)
-        cmd = ['docker', 'exec', CONTAINER_NAME, "/bin/bash", '-c', inside_cmd]
-        print(" ".join(cmd))
-        call(cmd)
+        #cmd = ['docker', 'exec', CONTAINER_NAME, "/bin/bash", '-c', inside_cmd]
+        #print(" ".join(cmd))
+        #call(cmd)
 
 
 #Need Modification

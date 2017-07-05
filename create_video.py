@@ -13,7 +13,7 @@ def create_admin_video_entry(video_name,labels):
     vatic_path = "/root/vatic"
 
     delete_cmd = "cd {}; turkic delete {}".format(vatic_path,slug)
-    create_cmd = "cd {}; turkic load {} {} {} {} {}".format(vatic_path,slug, userid ,ANNOTATEDFRAMEPATH, labels, TURKOPS)
+    create_cmd = "cd {}; turkic load {} {} {} {} {}".format(vatic_path,slug, user_id ,ANNOTATEDFRAMEPATH, labels, TURKOPS)
     cmd = ['docker', 'exec', CONTAINER_NAME, "/bin/bash", '-c', delete_cmd]
     call(cmd)
     cmd = ['docker', 'exec', CONTAINER_NAME, "/bin/bash", '-c', create_cmd]

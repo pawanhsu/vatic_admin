@@ -230,7 +230,7 @@ class Video(Base):
     isfortraining = Column(Integer)
     trainvalidator = Column(LargeBinary)
     blowradius = Column(Integer)
-    userid = Column(ForeignKey(u'users.id'), nullable=False, index=True)
+    user_id = Column(ForeignKey(u'users.id'), nullable=False, index=True)
 
     parent = relationship(u'Video', remote_side=[id])
     user = relationship(u'User')
