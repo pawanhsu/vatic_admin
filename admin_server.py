@@ -26,6 +26,7 @@ from mail import sendmail
 from hashlib import sha1
 from time import gmtime, strftime
 import datetime
+import config
 
 
 
@@ -207,11 +208,16 @@ def multiclass_filter():
     return redirect("./?video_name={}".format(video))
 
 
+def set_assignment(video):
+
+    global annotations
+    annotations = {video: Annotation(assignment, video_obj) for video_obj, assignment in assignments.items() if video_obj == video}
+
 
 @app.route('/')
 def index():
 
-    global check_box_DB
+    #global check_box_DB
     global annotations
     videos = get_videos(user_map)
 
@@ -221,9 +227,19 @@ def index():
         videos.remove(video)
         videos.insert(0, video)
         #user_name = session.query(User).first().username
+
+
     else:
         video = videos[0]
+
+    cur_video = session.query(Video).filter(Video.slug.contains(video)).first()
+    first_segment = session.query(Segment).filter(Segment.videoid == cur_video.id).first()
+    config.K_FRAME = int(first_segment.stop - 21 - first_segment.start)
         #user_name = session.query(User).first().username
+    if video not in annotations.keys():
+        set_assignment(video)
+    #annotations = {video: Annotation(assignment, video_obj) for video_obj, assignment in assignments.items() if video_obj == video}
+
 
     segments = []
     frame_num = 0
@@ -237,8 +253,9 @@ def index():
         video_obj = session.query(Video).filter(Video.slug == worker + '_' + video).first()
         video_res = {'height':video_obj.height,'width':video_obj.width}
 
-    #target_links = get_target_links(video, frame_num)
-    target = {}
+    target_links = get_target_links(video, frame_num)
+    #target = {}
+
     check_boxes = {}
     checkbox_errors = error_checkbox.query.all()
 
@@ -248,7 +265,8 @@ def index():
                 str(checkbox.error_begin) + '\t' + str(checkbox.error_end)
         check_boxes[error] = 1
 
-    print(check_boxes)
+
+
     #{u'A2Streetnight.mp4\tSponge\tSpooky\tsurplus\t0\t66': 1, u'A2Streetnight.mp4\tSponge\tSpooky\tsurplus\t0\t59': 1, u'A2Streetnight.mp4\tSponge\tpwan\tsurplus\t0\t59': 1}
     check_boxes_segment = {}
     for error_data in check_box_DB_segment.all():
@@ -288,33 +306,29 @@ def get_frame():
     frames = {}
 
 
+    alerts = annotations[video_name].alerts
     for frame_key in annotations[video_name].alerts:
     #frame_key = 0
     #while True:
+
         frames[frame_key] = {}
         frame = frames[frame_key]
-
         #frame["alert"] = alert_frames[frame_key]
         #What is this?
-        frame["alert"] = []
-        frame["frame_num"] = frame_key
-        frame["img_url"] = get_img_url(video_name, frame_key)
-        frame["target_links"] = get_target_links(video_name, frame_key)
-        #  break;
-        frame_key = 0
-        frames[frame_key] = {}
-        frame = frames[frame_key]
 
-        frame["alert"] = {}
+        #frame["alert"] = []
         frame["frame_num"] = frame_key
         frame["img_url"] = get_img_url(video_name, frame_key)
         frame["target_links"] = get_target_links(video_name, frame_key)
+#
+        #  break;
+
     if len(frames)==0:
         frame_key = 0
         frames[frame_key] = {}
         frame = frames[frame_key]
 
-        frame["alert"] = {}
+        #frame["alert"] = {}
         frame["frame_num"] = frame_key
         frame["img_url"] = get_img_url(video_name, frame_key)
         frame["target_links"] = get_target_links(video_name, frame_key)
@@ -563,6 +577,7 @@ def reset_input():
 if __name__ == "__main__":
     #dump_user_map()
     EXT_ADDR = os.environ.get('EXTERNAL_ADDRESS')
+
     if EXT_ADDR == None:
         EXT_ADDR = "172.16.22.51"
     VATIC_ADDRESS = "http://"+EXT_ADDR+":8892"
@@ -570,7 +585,10 @@ if __name__ == "__main__":
     user_map = get_user_map()
     assignments = get_assignments(user_map)
 
+    annotations = {}
     annotations = {video: Annotation(assignment, video) for video, assignment in assignments.items()}
+
+
     workers = get_workers(user_map)
     color_map = get_color_map(workers)
     check_box_DB =  TinyDB("check_box_db.json")

@@ -25,17 +25,20 @@ def DUMP_TXT_DATA(video_name='all', output_dir="data/query"):
         #call(cmd)
 
 
+import config
 #Need Modification
 def get_target_links(video_name, frame_num):
 
+
+    K_FRAME = config.K_FRAME
     links = []
 
-    video = session.query(Video).filter(Video.slug.contains(video_name)).first()
-    first_segment = session.query(Segment).filter(Segment.videoid == video.id).first()
-    nframe = int(first_segment.stop - 21 - first_segment.start)
+    #video = session.query(Video).filter(Video.slug.contains(video_name)).first()
+    #first_segment = session.query(Segment).filter(Segment.videoid == video.id).first()
+    #nframe = int(first_segment.stop - 21 - first_segment.start)
 
 
-    N_segment = frame_num / nframe
+    N_segment = frame_num / K_FRAME
     OFFSET_segment = frame_num
 
     default_user_map = user_map["default"]
@@ -46,7 +49,7 @@ def get_target_links(video_name, frame_num):
         	continue
         pivot = default_user_map[user][video_name][N_segment].find("?")
 
-        if N_segment > 1 and frame_num % nframe < OFFSET:
+        if N_segment > 1 and frame_num % K_FRAME < OFFSET:
             base_link = "{}/{}".format(VATIC_ADDRESS, default_user_map[user][video_name][N_segment-1][pivot:])
             final_link = "{}&frame={}".format(base_link, OFFSET_segment)
             links.append((user+'(A)', final_link))

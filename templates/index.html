@@ -509,7 +509,7 @@
                       <td><span class="label label-warning">少</span></td>
                   {%elif error["type"] == "surplus"%}
                       <td><span class="label label-info">多</span></td>
-                  {%elif error["type"] == "unmatched"%}
+                  {%else %}
                       <td><span class="label label-primary ">非</span></td>
                   {%endif%}
                   <td>{{error["reference"]}}</td>

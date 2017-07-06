@@ -1,6 +1,6 @@
 from subprocess import call
 from config import *
-CONTAINER_NAME = "VATIC"
+CONTAINER_NAME = "vatic"
 def create_admin_video_entry(video_name,labels):
 
     ADMIN_NAME = 'Max'
