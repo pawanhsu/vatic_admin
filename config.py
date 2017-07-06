@@ -3,7 +3,7 @@ import os
 
 PORT = 5001
 DEBUG = True
-CONTAINER_NAME = "VATIC"
+CONTAINER_NAME = "vatic"
 
 #Admin info
 ADMIN_NAME = "Max"
@@ -42,4 +42,4 @@ smtp_sender_name = ''
 
 smtp_encoding = 'utf-8'
 
-ALLOW_IP = ["192.168.168.1","192.168.168.67", "*"]
+ALLOW_IP = ["172.16.22.51","172.16.12.91", "127.0.0.1", "*"]

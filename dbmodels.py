@@ -210,7 +210,7 @@ class User(Base):
     priority = Column(Integer, nullable=False, default =  0)
     token = Column(String(50), nullable=True, unique = True, default = None)
     verification = Column(Boolean, nullable=False, default = False)
-    forgetPasswordToken = Column(String(50), nullable=True, unique = True, default = None)
+    forgetPasswordToken = Column(String(50), nullable=True, default = None)
     forgetPasswordTokenExpireTime = Column(DateTime, nullable=True, default=None)
 
 

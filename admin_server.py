@@ -223,7 +223,6 @@ def index():
 
     if request.args.has_key("video_name"):
         video = request.args['video_name']
-        #print("hahahaha: {}".format(video))
         videos.remove(video)
         videos.insert(0, video)
         #user_name = session.query(User).first().username
@@ -500,7 +499,11 @@ def verify_email_input():
 
 @app.route('/reset')
 def reset_password():
-    if not request.remote_addr in ALLOW_IP or "*" in ALLOW_IP:
+
+
+
+    if not request.remote_addr in ALLOW_IP:
+
         message = "not allow to use this function"
         return render_template("forget_message.html", info=message)
     mail = request.args.get('mail')
@@ -586,7 +589,7 @@ if __name__ == "__main__":
     assignments = get_assignments(user_map)
 
     annotations = {}
-    annotations = {video: Annotation(assignment, video) for video, assignment in assignments.items()}
+    #annotations = {video: Annotation(assignment, video) for video, assignment in assignments.items()}
 
 
     workers = get_workers(user_map)
