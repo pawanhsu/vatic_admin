@@ -3,41 +3,31 @@ import json
 from subprocess import call
 from dbconnect import *
 from dbmodels import *
+import config
 
 #Dump the annotaton from the given video
 def DUMP_TXT_DATA(video_name='all', output_dir="data/query"):
 
     default_user_map = user_map["default"]
 
-
     videos = []
     for user in default_user_map:
 
         videos += ["{}_{}".format(user, video)  for video in default_user_map[user] if video == video_name or video_name=='all']
-    print("Default: {}".format(videos))
     for video in videos:
         vatic_path = "/root/vatic"
         output_path = "{}/{}.txt".format(output_dir, video)
         merge_cmd = "--merge --merge-threshold 0.5"
-        #inside_cmd = "cd {}; turkic dump {} -o {} {}".format(vatic_path, video, output_path, merge_cmd)
-        #cmd = ['docker', 'exec', CONTAINER_NAME, "/bin/bash", '-c', inside_cmd]
-        #print(" ".join(cmd))
-        #call(cmd)
+        inside_cmd = "cd {}; turkic dump {} -o {} {}".format(vatic_path, video, output_path, merge_cmd)
+        cmd = ['docker', 'exec', CONTAINER_NAME, "/bin/bash", '-c', inside_cmd]
+        print(" ".join(cmd))
+        call(cmd)
 
-
-import config
 #Need Modification
 def get_target_links(video_name, frame_num):
 
-
     K_FRAME = config.K_FRAME
     links = []
-
-    #video = session.query(Video).filter(Video.slug.contains(video_name)).first()
-    #first_segment = session.query(Segment).filter(Segment.videoid == video.id).first()
-    #nframe = int(first_segment.stop - 21 - first_segment.start)
-
-
     N_segment = frame_num / K_FRAME
     OFFSET_segment = frame_num
 
@@ -65,13 +55,13 @@ def get_target_links(video_name, frame_num):
     return sorted(links)
 
 def get_workers(user_map):
+
     default_user_map = user_map["default"]
     workers = default_user_map.keys()
     return sorted(workers)
 
-
-
 def get_user_map(MAP_PATH="vatic-docker/data/user_map.json"):
+
     global ADMIN_NAME
     user_map = json.load(open(MAP_PATH))
 
@@ -82,19 +72,12 @@ def get_user_map(MAP_PATH="vatic-docker/data/user_map.json"):
         for video_name in user_map[user]:
             target_video_names.add(video_name)
 
-
-
     return {"default": user_map}
 
-
-
-
-
 def get_assignments(user_map):
+
     default_user_map = user_map["default"]
-
     assignments = {}
-
 
     for user in default_user_map:
         if user == ADMIN_NAME:
@@ -104,7 +87,6 @@ def get_assignments(user_map):
             if video not in assignments:
                 assignments[video] = {}
             assignments[video][user] = TXT_path
-
 
     return assignments
 
@@ -122,8 +104,7 @@ def get_videos(user_map):
 def dump_user_map():
     INSIDE_CMD = 'cd {}; turkic list --detail'.format(VATIC_PATH)
     CMD = ['docker', 'exec', CONTAINER_NAME, "/bin/bash", '-c', INSIDE_CMD]
-    print(" ".join(CMD))
+    print "[Docker Command Exec]: " + " ".join(CMD)
     call(CMD)
 
-ADMIN_NAME = "Max"
 user_map = get_user_map()

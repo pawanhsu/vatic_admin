@@ -3,7 +3,6 @@ from itertools import groupby
 from operator import itemgetter
 from collections import OrderedDict
 
-
 #Read the bboxes txt file and return a dictionary
 def parse_txt(file="sample_output.txt", selected_class=["all"]):
 
@@ -52,7 +51,6 @@ def report_annotation(annotation, filter = {}):
         period = filter["period"]
         is_target = lambda frame: 0 <= (frame % period - offset) <= duration
 
-
         for frame in annotation:
             if not is_target(frame):
                 print(frame)
@@ -100,9 +98,6 @@ def get_IOU(box_a, box_b):
     return intersection / union_area
 
 
-
-
-
 def build_max_IOU_map(annotations_dict, frame):
 
     def get_max_IOUs(worker_a, bbox_a):
@@ -123,7 +118,6 @@ def build_max_IOU_map(annotations_dict, frame):
                          max_IOUs[worker_b]["id"] = b_id
 
         return max_IOUs
-
 
     max_IOUs_map = {}
     for worker in annotations_dict:
@@ -150,13 +144,8 @@ def get_isolations(annotations_dict, frame, threshold):
     return isolated_bboxes
 
 
-
-
-
-
 #Take the dictionary from different annotators and return the alert frames
 def get_alert(annotations_dict):
-
 
     def compare_num_objs():
         #A map storing num_objs from each worker
@@ -172,15 +161,10 @@ def get_alert(annotations_dict):
                 alert_frames[frame] = {}
             alert_frames[frame]["wrong_number"] = num_objs_map
 
-
     #Sub-function for comparing number of IOUs
     def compare_IOUs(threshold=0.5, ignore_occu=True):
 
-
-
         isolated_bboxes = get_isolations(annotations_dict, frame, threshold)
-
-
         if len(isolated_bboxes) > 0 :
             if frame not in alert_frames:
                 alert_frames[frame] = {}
@@ -188,7 +172,6 @@ def get_alert(annotations_dict):
 
 
     def compare_matching(threshold=0.5, ignore_occu=True):
-
 
         def get_unmatching(max_IOU_map, threshold):
             infos = {}
@@ -216,14 +199,10 @@ def get_alert(annotations_dict):
         max_IOU_map = build_max_IOU_map(annotations_dict, frame)
         unmatched_info = get_unmatching(max_IOU_map, threshold)
 
-
         if len(unmatched_info) > 0 :
             if frame not in alert_frames:
                 alert_frames[frame] = {}
             alert_frames[frame]["wrong-class"] = unmatched_info
-
-
-
 
     min_frame = float("inf")
     max_frame = 0
@@ -232,10 +211,6 @@ def get_alert(annotations_dict):
         if frames:
             min_frame = min(min_frame, min(frames))
             max_frame = max(max_frame, max(frames))
-
-
-
-
     alert_frames = {}
     if min_frame < max_frame:
         for frame in range(min_frame, max_frame+1):
@@ -255,9 +230,6 @@ def get_boxID_map(alerts,annotation_map, workers):
 
 
             for worker_A, isolation in isolations.items():
-                #print(unmatchings)
-                #print(worker_A)
-
                 for box_id_A, IOU_list in isolation.items():
                     box_A = annotation_map[video_name][worker_A][frame][box_id_A].copy()
                     box_A["matching"] = {}
@@ -275,7 +247,6 @@ def get_boxID_map(alerts,annotation_map, workers):
                         if new_box_id_A not in box_ID_map[video_name]:
                             box_ID_map[video_name][new_box_id_A] = {}
                         box_ID_map[video_name][new_box_id_A][frame] = box_A
-
 
             unmatchings = alerts[video_name][frame].get("wrong-class" ,{})
             #print(unmatchings)
@@ -302,10 +273,6 @@ def get_boxID_map(alerts,annotation_map, workers):
                         info = [new_box_id_A, new_box_id_B, label_A, label_B]
                         box_ID_map[video_name][new_box_id_A][frame]["unmatching"][worker_B] = info
 
-
-
-
-
     return box_ID_map
 
 
@@ -319,8 +286,6 @@ def group_continuous_int(data, mark):
     return [(start, end, mark) for start, end in ranges if start != end]
 
 
-
-
 def group_errors(box_ID_map, workers):
     errors = {}
     get_user = lambda box_id: box_id[:box_id.find("_")]
@@ -332,9 +297,6 @@ def group_errors(box_ID_map, workers):
             errors[video_name][worker]["missing"] = []
             errors[video_name][worker]["surplus"] = []
             errors[video_name][worker]["unmatched"] = []
-
-
-
 
     for video_name in box_ID_map:
 
@@ -365,7 +327,6 @@ def group_errors(box_ID_map, workers):
 
                             unmatchings.append(frame)
 
-
                 error_missing = group_continuous_int(missings, box_ID)
 
                 error_unmatching = group_continuous_int(unmatchings, info)
@@ -379,10 +340,6 @@ def group_errors(box_ID_map, workers):
                     error_surplus.append(worker)
                     error_surplus = tuple(error_surplus)
                     errors[video_name][user_name]["surplus"] += [error_surplus]
-
-
-
-
 
     #print(errors[video_name][worker]["unmatched"])
     normalized_errors = {}
@@ -404,7 +361,6 @@ def group_errors(box_ID_map, workers):
                     unmatched_info = {"reference_label":reference_label, "reference_id":reference_box_id}
                     normalized_error = {"type":error_type, "reference":reference, "start":start, "end":end, "box_id":box_id, "unmatched_info":unmatched_info}
 
-
                 else:
                     if len(error) == 3:
                         error_type = "missing"
@@ -420,12 +376,7 @@ def group_errors(box_ID_map, workers):
                         end = error[1]
 
                     normalized_error = {"type":error_type, "reference":reference, "start":start, "end":end, "box_id":box_id}
-                #print(worker, normalized_error)
                 normalized_errors[video_name][worker].append(normalized_error)
-
-
-
-
 
     return OrderedDict(sorted(normalized_errors.items(), key= lambda x: x[0]))
 
@@ -435,8 +386,6 @@ def group_errors(box_ID_map, workers):
 
 
 if __name__ == "__main__":
-
-
         annotations_a = parse_txt("FOO.txt")
         annotations_b = parse_txt("BAR.txt")
         annotations_dict = {"A": annotations_a, "B": annotations_b}
@@ -444,7 +393,3 @@ if __name__ == "__main__":
         alert_frames = get_alert(annotations_dict)
         box_ID_map = get_boxID_map({"dummy": alert_frames},{"dummy":annotations_dict},  workers)
         errors = group_errors(box_ID_map, workers)
-        #annotations_b[0][0]["xmax"] +=50
-        #annotations_b[0][0]["xmin"] +=50
-
-        #alert_frames = compare(annotations_dict)

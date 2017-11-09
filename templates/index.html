@@ -1,577 +1,442 @@
 <html>
-  <head>
-  {% for worker, color in color_map.items() %}
-    <meta class="worker-color" name={{worker}} content="{{color}}">
-  {%endfor%}
-    <title>Iron Yun Vatic Admin</title>
+   <head>
+      {% for worker, color in color_map.items() %}
+      <meta class="worker-color" name={{worker}} content="{{color}}">
+      {%endfor%}
+      <title>Iron Yun Vatic Admin</title>
+      <link rel="stylesheet" href="/static/css/bootstrap-multiselect.css" type="text/css"/>
+      <link href="static/ironyunsmall.png" rel='icon' type='image/x-icon'/>
+      <link rel="stylesheet" href="static/css/bootstrap.min.css">
+      <link  rel= "stylesheet" href="static/index.css">
+      <link rel= "stylesheet" href="static/seekbar.css">
+      <script src="https://d3js.org/d3.v4.min.js"></script>
+      <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.0/jquery.min.js"></script>
+      <script src="/static/js/bootstrap.min.js" ></script>
+      <script src="/static/index.js"></script>
+      <script type="text/javascript" src="/static/js/bootstrap-multiselect.js"></script>
 
-    <link href="static/ironyunsmall.png" rel='icon' type='image/x-icon'/>
-    <script src="https://d3js.org/d3.v4.min.js"></script>
-    <script src="//cdnjs.cloudflare.com/ajax/libs/tether/1.3.7/js/tether.js"></script>
-    <link  rel= "stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/tether/1.3.7/css/tether-theme-arrows-dark.css"</script>
-    <!--script  src="//code.jquery.com/jquery-3.1.1.min.js" integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8="
-    crossorigin="anonymous"></script-->
-    <link rel="stylesheet" href="static/css/bootstrap.min.css">
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.0/jquery.min.js"></script>
-    <script src="/static/js/bootstrap.min.js" ></script>
-    <script src="/static/index.js"></script>
-    <link  rel= "stylesheet" href="static/index.css">
-    <link rel= "stylesheet" href="static/seekbar.css">
+      <script>
+         // vatic set 30fps
+         var refresh_interval = 1000 / 30;
+         var users = [];
+         {% for user in users|sort %}
+           users.push("{{user}}");
+         {% endfor %}
+         var img_base_path = "{{ vatic }}/frames/" + '{{ users[0] }}' + "_";
+         var video_frames = {};
+         var frame_indexs = [];
+         var preload_status = {
+           loading: false,
+           start: 0,
+           end: 0
+         };
+         var lastShowImage;
+         var markedBox;
 
+         var initSelectOptions = function(option,container) {
+           //TODO: should load option here, and
+           $.ajax({
+             method: "GET",
+             url: "/",
+           })
 
-    <!-- bootstrap-multiselect plugin -->
-    <script type="text/javascript" src="/static/js/bootstrap-multiselect.js"></script>
-    <link rel="stylesheet" href="/static/css/bootstrap-multiselect.css" type="text/css"/>
+         }
 
-    <script>
-      // vatic set 30fps
-      var refresh_interval = 1000 / 30;
-      var users = [];
-      {% for user in users|sort %}
-        users.push("{{user}}");
-      {% endfor %}
-      var img_base_path = "{{ vatic }}/frames/" + '{{ users[0] }}' + "_";
-      var video_frames = {};
-      var frame_indexs = [];
-      var preload_status = {
-        loading: false,
-        start: 0,
-        end: 0
-      };
-      var lastShowImage;
-      var markedBox;
-      var initSelectOptions = function(option,container) {
-        //TODO: should load option here, and
-        $.ajax({
-          method: "GET",
-          url: "/",
-        })
-          .done(function(content) {
-            // pre-option
+         var exitSelectOption = function(event) {
+           // TODO:  refresh or update page here
+           var select_val = $('#error-multiple-select').val()
+           alert(select_val[0])
+           $.ajax({
+             url: '/multiclass_filter',
+             data: {
+               'selected_class':select_val.toString(),
+               'video': $("#video-selection").val().slice(13)
+             },
+             success: function () {
+               location.reload();
+             }
+           });
+         }
+         var operatorAllOptions = function(exceptOption, enableOrDisabled) {
+           var exceptValue = exceptOption[0].value;
+           var par = exceptOption.parent();
+           var options = exceptOption.parent().find("option");
+           for (var i=0; i< options.length; i++) {
+             var option = options[i];
+             console.log(option.value,exceptValue)
+             if (option.value === exceptValue) {
+               console.log("don't disable this option");
+               continue;
+             }
+             option.disabled = !enableOrDisabled;
+             option.selected = false;
+           }
+           $("#"+par[0].id).multiselect('refresh');
+         }
+         var disableAllOtherOption = function(nonTargetOption) {
+           // console.log(nonTargetOption)
+           operatorAllOptions(nonTargetOption, false)
+         }
+         var enableAllOtherOption = function(nonTargetOption) {
+           operatorAllOptions(nonTargetOption, true)
+         }
 
-            // console.log(content);
-            // var items = JSON.parse(content).data.items;
-            var items = [{name: "car", value: "car"}, {name: "person", value: "person"}]
+         var changeOptionCheck = function(option, checked) {
+           if (option.attr("single")==="true") {
+             console.log("single option");
+             // case 'all': disable other option
+             if (checked === true) {
+               disableAllOtherOption(option);
+             } else {
+               enableAllOtherOption(option);
+             }
+           }
+         }
 
-            option.multiselect('rebuild');
-            // alert( "success" );
-          })
-          .fail(function() {
-            alert( "load type of class with error" );
-          })
-          .always(function() {
-            // success or not, this will happen
-            //alert( "complete" );
-          });
-        //$('#error-multiple-select').multiselect('rebuild');
-      }
-      var exitSelectOption = function(event) {
-        // TODO:  refresh or update page here
-        var select_val = $('#error-multiple-select').val()
-        alert(select_val[0])
-        $.ajax({
-          url: '/multiclass_filter',
-          data: {
-            'selected_class':select_val.toString(),
-            'video': $("#video-selection").val().slice(13)
-          },
-          success: function () {
-            location.reload();
-          }
-        });
-      }
-      var operatorAllOptions = function(exceptOption, enableOrDisabled) {
-        var exceptValue = exceptOption[0].value;
-        var par = exceptOption.parent();
-        var options = exceptOption.parent().find("option");
-        for (var i=0; i< options.length; i++) {
-          var option = options[i];
-          console.log(option.value,exceptValue)
-          if (option.value === exceptValue) {
-            console.log("don't disable this option");
-            continue;
-          }
-          option.disabled = !enableOrDisabled;
-          option.selected = false;
-        }
-        $("#"+par[0].id).multiselect('refresh');
-      }
-      var disableAllOtherOption = function(nonTargetOption) {
-        // console.log(nonTargetOption)
-        operatorAllOptions(nonTargetOption, false)
-      }
-      var enableAllOtherOption = function(nonTargetOption) {
-        operatorAllOptions(nonTargetOption, true)
-      }
-      var changeOptionCheck = function(option, checked) {
-        if (option.attr("single")==="true") {
-          console.log("single option");
-          if (checked === true) {
-            disableAllOtherOption(option);
-          } else {
-            enableAllOtherOption(option);
-          }
-        }
-      }
+         var exitUserSelectOption = function(event) {
+         }
 
-      var exitUserSelectOption = function(event) {
-      }
+         var exitsegmentSelectOption = function(event) {
+         }
 
-      var exitsegmentSelectOption = function(event) {
-      }
+         var filterWorker = function(worker) {
+             $(".error_entry").each(function(){
+               var error_worker = $(this).attr('data-worker');
+               if(error_worker != worker){
+                 $(this).hide();
+               }
+               else{
+                 $(this).show();
+               }
+             })
+         }
 
+         $(document).ready(function(){
+           // init multiple select
+           var errorSelectOption = {
+             onChange: changeOptionCheck,
+             onInitialized: initSelectOptions,
+             onDropdownHide: exitSelectOption,
+             // includeSelectAllOption: true,
+             buttonWidth: '110px',
+             nonSelectedText: 'Error Type'
+           }
+           $('#error-multiple-select').multiselect(errorSelectOption);
 
-      var filterWorker = function(worker) {
-          $(".error_entry").each(function(){
-            var error_worker = $(this).attr('data-worker');
-            if(error_worker != worker){
-              $(this).hide();
-            }
-            else{
-              $(this).show();
-            }
-          })
-      }
+           // init user select
+           var userSelectOption = {
+             onChange: changeOptionCheck,
+             onInitialized: initSelectOptions,
+             onDropdownHide: exitUserSelectOption,
+             // includeSelectAllOption: true,
+             buttonWidth: '90px',
+             nonSelectedText: 'Select User'
+           }
 
-      $(document).ready(function(){
-
-        // init multiple select
-        var errorSelectOption = {
-          onChange: changeOptionCheck,
-          onInitialized: initSelectOptions,
-          onDropdownHide: exitSelectOption,
-          // includeSelectAllOption: true,
-          buttonWidth: '110px',
-          nonSelectedText: 'Error Type'
-        }
-        $('#error-multiple-select').multiselect(errorSelectOption);
-
-        // init user select
-        var userSelectOption = {
-          onChange: changeOptionCheck,
-          onInitialized: initSelectOptions,
-          onDropdownHide: exitUserSelectOption,
-          // includeSelectAllOption: true,
-          buttonWidth: '90px',
-          nonSelectedText: 'Select User'
-        }
-
-        $('#user-multiple-select').multiselect(userSelectOption);
-        var segmentSelectOption = {
-          onChange: changeOptionCheck,
-          onInitialized: initSelectOptions,
-          onDropdownHide: exitsegmentSelectOption,
-          // includeSelectAllOption: true,
-          buttonWidth: '90px',
-          maxHeight:'350',
-          nonSelectedText: 'Segment'
-        }
-        $('#segment-multiple-select').multiselect(segmentSelectOption);
-
-        /* old selector
-        $("#select_class").change(function(){
-          var selected_class = $(this).val();
-
-          $.ajax({
-            url: '/multiclass_filter',
-            data: {
-              'selected_class': $(this).val()
-            },
-            success: function () {
-              location.reload();
-            }
-          });
-        });
-        */
-
-      });
+           $('#user-multiple-select').multiselect(userSelectOption);
+           var segmentSelectOption = {
+             onChange: changeOptionCheck,
+             onInitialized: initSelectOptions,
+             onDropdownHide: exitsegmentSelectOption,
+             // includeSelectAllOption: true,
+             buttonWidth: '90px',
+             maxHeight:'350',
+             nonSelectedText: 'Segment'
+           }
+           $('#segment-multiple-select').multiselect(segmentSelectOption);
+           /* old selector
+           $("#select_class").change(function(){
+             var selected_class = $(this).val();
+             $.ajax({
+               url: '/multiclass_filter',
+               data: {
+                 'selected_class': $(this).val()
+               },
+               success: function () {
+                 location.reload();
+               }
+             });
+           });
+           */
+         });
 
 
+         $(document).ready(function(){
+           $("#user-multiple-select").on('change', function() {
+             var selected_user = $("#user-multiple-select").val();
+             filterWorker(selected_user);
+           })
+
+           $("#segment-multiple-select").on('change', function() {
+
+             var selected_segment = $("#segment-multiple-select").val();
+             var segment_length = parseInt($('#segment-multiple-select option').eq(2).val());
+
+             $(".error_entry").show();
+             var selected_user = $("#user-multiple-select").val();
+             filterWorker(selected_user);
+             if(selected_segment != 'all'){
+               start = parseInt($(this).val())
+
+               $(".segment_start").each(function(){
+                 if(parseInt($(this).text())< start || parseInt($(this).text()) >= start + segment_length){
+                   $(this).parent().parent().parent().hide()
+                 }
+               });
+             }
+           });
+
+           $(".segment_click").on('click', function() {
+             var cur_user = $('#user-multiple-select').val();
+             var frame_info = get_video_frame($(this).text());
+             for(i = 0; i < frame_info["target_links"].length; i++){
+               if(frame_info["target_links"][i].toString().match(cur_user)){
+                 var link = frame_info["target_links"][i].toString().substring(cur_user.toString().length + 1)
+                 $(this).parent().parent().next().next().children().attr('href',link);
+               }
+             }
+           });
+         });
 
 
+         function popupOpenClose(popup) {
 
-      $(document).ready(function(){
-        $("#user-multiple-select").on('change', function() {
-          var selected_user = $("#user-multiple-select").val();
-          filterWorker(selected_user);
-        })
-      })
+           /* Add div inside popup for layout if one doesn't exist */
+            if ($(".wrapper").length == 0){
+               $(popup).wrapInner("<div class='wrapper'></div>");
+               }
 
-      $(document).ready(function(){
-        $("#user-multiple-select").val($("#user-multiple-select option:first").val());
-        selected_user = $("#user-multiple-select").val();
-        filterWorker(selected_user);
-      });
+                /* Open popup */
+            $(popup).show(500);
 
-      $(document).ready(function(){
-        $("#segment-multiple-select").on('change', function() {
-
-          var selected_segment = $("#segment-multiple-select").val();
-          var segment_length = parseInt($('#segment-multiple-select option').eq(2).val());
-
-
-          $(".error_entry").show();
-          var selected_user = $("#user-multiple-select").val();
-          filterWorker(selected_user);
-          if(selected_segment != 'all'){
-            start = parseInt($(this).val())
-
-            $(".segment_start").each(function(){
-              if(parseInt($(this).text())< start || parseInt($(this).text()) >= start + segment_length){
-                $(this).parent().parent().parent().hide()
-              }
+             /* Close popup if user clicks on background */
+            $(popup).click(function(e) {
+               if ( e.target == this ) {
+                   if ($(popup).is(':visible')) {
+                        $('body>*').css("filter","");
+                        $(popup).hide(300);
+                    }
+               }
             });
+
+             /* Close popup and remove errors if user clicks on cancel or close buttons */
+           $(popup).find("button[name=close]").on("click", function() {
+              if ($(".formElementError").is(':visible')) {
+           			   $(".formElementError").remove();
+              }
+                $('body>*').css("filter","");
+              $(popup).hide(300);
+           });
           }
-        })
-      })
 
-      $(document).ready(function(){
-        $(".segment_click").on('click', function() {
-
-          var cur_user = $('#user-multiple-select').val();
-          var frame_info = get_video_frame($(this).text());
-          for(i = 0; i < frame_info["target_links"].length; i++){
-            if(frame_info["target_links"][i].toString().match(cur_user)){
-              var link = frame_info["target_links"][i].toString().substring(cur_user.toString().length + 1)
-              $(this).parent().parent().next().next().children().attr('href',link);
-            }
-
-          }
-        })
-
-      })
-
-
-      function popupOpenClose(popup) {
-
-	       /* Add div inside popup for layout if one doesn't exist */
-	        if ($(".wrapper").length == 0){
-		          $(popup).wrapInner("<div class='wrapper'></div>");
-	           }
-
-	            /* Open popup */
-	        $(popup).show(500);
-
-	         /* Close popup if user clicks on background */
-	        $(popup).click(function(e) {
-		          if ( e.target == this ) {
-			             if ($(popup).is(':visible')) {
-                     $('body>*').css("filter","");
-				                 $(popup).hide(300);
-			              }
-		          }
-	        });
-
-	         /* Close popup and remove errors if user clicks on cancel or close buttons */
-	       $(popup).find("button[name=close]").on("click", function() {
-		         if ($(".formElementError").is(':visible')) {
-        			   $(".formElementError").remove();
-		         }
-             $('body>*').css("filter","");
-		         $(popup).hide(300);
-	       });
-       }
-
-       $(document).ready(function () {
-	        $("[data-js=open]").on("click", function() {
-		          popupOpenClose($("#segment_selector"));
-              $('body>*:not(#segment_selector)').css("filter","blur(5px)");
-	           });
-             $("[data-js1=open]").on("click", function() {
-   		          popupOpenClose($("#dumped_video"));
-                 $('body>*:not(#dumped_video)').css("filter","blur(5px)");
-   	           });
-       });
-
-
-
-    </script>
-    <style>
-
-    </style>
-
-</head>
-
-
-
-
-
-
-
-
-
-
-<body>
-  <div class="container-fluid">
-    <h1 style="background: linear-gradient(to bottom right, 	#01AEFB , white);margin:0px;padding:10px 0px 10px 10px;margin-left:-15px; margin-right:-15px">Vatic Admin Prototype 2.0<img src="/static/ironyun.png" alt="Smiley face" height="40" width="160" align="right" style="margin-right:15px"></h1>
-    <div class="row" style="margin-top:27px">
-      <div class="col-md-6">
-        <!--   Select Picker for Video and Update Button -->
-        <select id="video-selection" class="selectpicker" style="width:140px;height:35px;margin-left:0px;background-color:white;border-radius: 3px;" onChange="window.document.location.href=this.options[this.selectedIndex].value;">
-          {% for video in videos %}
-            <option value="/?video_name={{video}}" >{{video}}</option>
-          {% endfor %}
-        </select>
-        <a href="update?video_name={{videos[0]}}"><button type="button" class="btn btn-primary">Update <span class="glyphicon glyphicon-repeat"></button></a>
-        <a href="/users"><button type="button" class="btn btn-primary">Workers <span class="glyphicon glyphicon-user"></button></a>
-
-        <!--   End of Select Picker for Video and Update Button -->
+          $(document).ready(function () {
+            $("[data-js=open]").on("click", function() {
+               popupOpenClose($("#segment_selector"));
+                 $('body>*:not(#segment_selector)').css("filter","blur(5px)");
+               });
+                $("[data-js1=open]").on("click", function() {
+                  popupOpenClose($("#dumped_video"));
+                    $('body>*:not(#dumped_video)').css("filter","blur(5px)");
+                  });
+          });
+      </script>
+   </head>
+   <body>
+      <div class="container-fluid">
+         <h1 style="background: linear-gradient(to bottom right, 	#01AEFB , white);margin:0px;padding:10px 0px 10px 10px;margin-left:-15px; margin-right:-15px">Vatic Admin Prototype 2.0<img src="/static/ironyun.png" alt="Smiley face" height="40" width="160" align="right" style="margin-right:15px"></h1>
+         <div class="row" style="margin-top:27px">
+            <div class="col-md-6">
+               <!--   Select Picker for Video and Update Button -->
+               <select id="video-selection" class="selectpicker" style="width:140px;height:35px;margin-left:0px;background-color:white;border-radius: 3px;" onChange="window.document.location.href=this.options[this.selectedIndex].value;">
+                  {% for video in videos %}
+                  <option value="/?video_name={{video}}" >{{video}}</option>
+                  {% endfor %}
+               </select>
+               <a href="update?video_name={{videos[0]}}"><button type="button" class="btn btn-primary">Update <span class="glyphicon glyphicon-repeat"></button></a>
+               <a href="/users"><button type="button" class="btn btn-primary">Workers <span class="glyphicon glyphicon-user"></button></a>
+               <!--   End of Select Picker for Video and Update Button -->
+            </div>
+            <div class="col-md-1">
+               <h3 style="margin-top: 10px;">Error list</h3>
+            </div>
+            <div class="col-md-5 text-right">
+               <select id="segment-multiple-select" multiple="multiple" >
+                  <option value='all' single='true'>all</option>
+                  {%for segment in segments[0]["segment"]%}
+                  <option value = '{{segment.start}}' single='true'>segment{{ loop.index }}</option>
+                  {%  endfor %}
+               </select>
+               <select id="user-multiple-select" multiple="multiple">
+                  {%for user in users%}
+                  <option value = '{{user}}' single='true'>{{user}}</option>
+                  {%  endfor %}
+               </select>
+               <select id="error-multiple-select" multiple="multiple">
+                  <option value='all' single='true'>all</option>
+                  <option value='another' single='true'>another</option>
+                  {%for class in label%}
+                  <!--<option value = '{{class.text}}'>{{class.text}}</option> -->
+                  <option value = '{{class}}'>{{class}}</option>
+                  {%  endfor %}
+               </select>
+               <button data-js="open" type="button" class="btn btn-default" style="width:130px">Segment Selector</button>
+               <button data-js1="open" type="button" class="btn btn-default" style="width:110px">Dumped Video</button>
+            </div>
+         </div>
       </div>
-      <div class="col-md-1">
-        <h3 style="margin-top: 10px;">Error list</h3>
-      </div>
-      <div class="col-md-5 text-right">
-        <select id="segment-multiple-select" multiple="multiple" >
-          <option value='all' single='true'>all</option>
-          {%for segment in segments[0]["segment"]%}
-          <option value = '{{segment.start}}' single='true'>segment{{ loop.index }}</option>
-          {%  endfor %}
-        </select>
+      <script>
+         function confirm_dump() {
+           var video_name = $("#video-selection>option:selected").text()
+           var r = confirm("Are you sure to dump the segments?\nThis will erase the previous dumped segments.");
+           if (r == true) {
+               $('#processing').show();
+               $('#processing').css("filter","")
+               $('#segment_selector').css("filter","blur(5px)");
+               dump_segment(video_name)
+             }
 
-        <select id="user-multiple-select" multiple="multiple">
-          {%for user in users%}
-          <option value = '{{user}}' single='true'>{{user}}</option>
-          {%  endfor %}
-        </select>
-
-        <select id="error-multiple-select" multiple="multiple">
-          <option value='all' single='true'>all</option>
-          <option value='another' single='true'>another</option>
-          {%for class in label%}
-          <!--<option value = '{{class.text}}'>{{class.text}}</option> -->
-          <option value = '{{class}}'>{{class}}</option>
-          {%  endfor %}
-        </select>
-        <button data-js="open" type="button" class="btn btn-default" style="width:130px">Segment Selector</button>
-        <button data-js1="open" type="button" class="btn btn-default" style="width:110px">Dumped Video</button>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    function confirm_dump() {
-      var video_name = $("#video-selection>option:selected").text()
-      var r = confirm("Are you sure to dump the segments?\nThis will erase the previous dumped segments.");
-      if (r == true) {
-          $('#processing').show();
-          $('#processing').css("filter","")
-          $('#segment_selector').css("filter","blur(5px)");
-          dump_segment(video_name)
-        }
-
-      }
-  </script>
-
-
-  <img id="processing" src="static/loader.gif" hidden style = "height:70px;width:70px;position: fixed;top:40%;left:48%;z-index:50000">
-
-  <div id="segment_selector" class="popup container">
-  	<h2 style="margin-top:0px">Segment Selector</h2>
-    <div class="row" style="margin-top:10px;">
-
-      <div style="overflow-y: scroll;">
-        <div class="col-md-6" style="height:80%;margin-top:-10px;" >
-          <h3>user1</h3>
-          <hr style="margin:0px">
-          {%for segment in segments[0]["segment"]%}
-          {%if segment.id|string in check_boxes_segment%}
-          <h5 style="padding:5px">{{segments[0]["worker"]}}'s segment{{ loop.index }}&nbsp<label><input type="radio" name = "segment{{ loop.index }}" checked class="segment_checkbox" data-videoname="{{video_name}}" data-segmentid = "{{segment.id}}"><span></span></label></h5>
-          {%else%}
-          <h5 style="padding:5px">{{segments[0]["worker"]}}'s segment{{ loop.index }}&nbsp<label><input type="radio" name = "segment{{ loop.index }}" class="segment_checkbox" data-videoname="{{video_name}}" data-segmentid = "{{segment.id}}"><span></span></label></h5>
-          {%endif%}
-          {%  endfor %}
-        </div>
-        <div class="col-md-6" style="height:80%;margin-top:-10px;">
-          <h3>user2</h3>
-          <hr style="margin:0px">
-
-          {%for segment in segments[1]["segment"]%}
-          {%if segment.id|string in check_boxes_segment%}
-          <h5 style="padding:5px">{{segments[1]["worker"]}}'s segment{{ loop.index }}&nbsp<label><input type="radio" checked name = "segment{{ loop.index }}" class="segment_checkbox" data-videoname="{{video_name}}" data-segmentid = "{{segment.id}}"><span></span></label></h5>
-          {%else%}
-          <h5 style="padding:5px">{{segments[1]["worker"]}}'s segment{{ loop.index }}&nbsp<label><input type="radio" name = "segment{{ loop.index }}" class="segment_checkbox" data-videoname="{{video_name}}" data-segmentid = "{{segment.id}}"><span></span></label></h5>
-          {%endif%}
-          {%  endfor %}
-        </div>
-    </div>
-      <button onclick="confirm_dump()" type="button" class="btn btn-default" style="margin:10px;margin-top:30px;">Dump</button>
-      <button name="close" type="button" class="btn btn-default" style="margin:10px;margin-top:30px">Close</button>
-  </div>
-
-  </div>
-
-  <div id="dumped_video" class="popup container" style="height:600px;width:450px;left: calc(50% - 200px);">
-    <h2 style="margin-top:0px">Dumped Video</h2>
-    <h3 style="margin-top:0px">{{videos[0]}}</h3>
-    <div class="row" style="margin-top:10px;height:70%;overflow-y: scroll">
-
-
-        {%for admin_segment in admin_segment %}
-        <a href="http://172.16.22.51:8892/?id={{admin_segment["id"]}}&hitId=offline" style="font-size:18px">Admin's segment{{ loop.index }}</a>
-        <br>
-        {%  endfor %}
-
-    </div>
-    <button name="close" type="button" class="btn btn-default" style="margin:10px;margin-top:30px">Close</button>
-
-
-  </div>
-
-
-  <div class="container-fluid" id="body" >
-    <div class="row">
-      <div class="col-md-6" id="player" style="margin-top:-5px">
-        <h2><span class="label label-default"><strong>Frame:</strong> <strong id='frame-num'>{{frame_num}}</strong></span></h2>
-        <svg id="alert-svg" class="svg-content" frame-num="{{frame_num}}"
-          viewBox="0 0 {{video_res.width}} {{video_res.height}}"
-          preserveAspectRatio="xMinYMin meet" > </svg>
-        <!--  Control Buttons -->
-        <div id="seekbar-container">
-          <input type="range" id="seekbar" class="seekbar" max="1" step="0.0000001" value="0" onchange="onchange_seekbar(this)" oninput="oninput_seekbar(this)">
-        </div>
-        <div id="buttons">
-          <a id="previous-button"><button class="btn btn-success"> Previous <span class="glyphicon glyphicon-arrow-left"></span></button></a>
-          <a id="next-button"><button class="btn btn-primary"> Next <span class="glyphicon glyphicon-arrow-right"></span></button></a>
-          &nbsp;
-          &nbsp;
-          <a id="play-button"><button class="btn btn-danger"> Play <span class="glyphicon glyphicon-play"></span></button></a>
-          <a id="stop-button"><button class="btn btn-warning"> Pause <span class="glyphicon glyphicon-pause"></span></button></a>
-          <a id="rewind-button"><button class="btn btn-info"> Rewind <span class="glyphicon glyphicon-backward"></span></button></a>
-        </div>
-        <!--  End of Control Buttons -->
-
-        <!--  Alert Info -->
-        <div id="alert-info" class="col-md-6">
-          <div id="wrong_number">
-          {% if "wrong_number" in alert %}  <div class="row"></div>
-              <h4>Wrong Number:</h4>
-              <ul id="w-list" class="list-group">
-              {% for user in alert["wrong_number"]|sort %}
-                <li class="list-group-item">
-                  <span class="badge">{{alert["wrong_number"][user]}}</span>
-                  {{user}}
-                </li>
-              {% endfor %}
-              </ul>
-            {% endif %}
-          </div>
-
-          <div id="isolation">
-          {% if "isolation" in alert %}
-
-              <h4>Isolation:</h4>
-              <ul id="i-list" class="list-group">
-              {% for user in alert["isolation"]|sort %}
-                <li class="list-group-item">
-                  <span class="badge">{{alert["isolation"]|length}}</span>
-                  {{user}}
-                </li>
-              {% endfor %}
-              </ul>
-          {% endif %}
-          </div>
-
-        </div>
-
-        <!--  End of Alert Info -->
-
-
-
-
-
-
-      </div>
-
-
-
-        <div id="error-table">
-          <table class="table table-bordered">
-            <thead>
-              <tr>
-                <th>Type</th>
-                <th>Worker</th>
-                <th>Frame</th>
-                <th>Box No.</th>
-                <th>Segment</th>
-                <th>Category</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-
-
-              {% for worker in errors|sort %}
-
-                {%for error in errors[worker]%}
-                {% set box_id = error["owner"].split("_")[1] %}
-                <tr data-worker="{{worker}}" data-box="{{box_id}}"
-                  data-id class = "error_entry">
-
-                  {% if error["type"] == "missing"%}
-                      <td><span class="label label-warning">少</span></td>
-                  {%elif error["type"] == "surplus"%}
-                      <td><span class="label label-info">多</span></td>
-                  {%else %}
-                      <td><span class="label label-primary ">非</span></td>
+           }
+      </script>
+      <img id="processing" src="static/loader.gif" hidden style = "height:70px;width:70px;position: fixed;top:40%;left:48%;z-index:50000">
+      <div id="segment_selector" class="popup container">
+         <h2 style="margin-top:0px">Segment Selector</h2>
+         <div class="row" style="margin-top:10px;">
+            <div style="overflow-y: scroll;">
+               <div class="col-md-6" style="height:80%;margin-top:-10px;" >
+                  <h3>user1</h3>
+                  <hr style="margin:0px">
+                  {%for segment in segments[0]["segment"]%}
+                  {%if segment.id|string in check_boxes_segment%}
+                  <h5 style="padding:5px">{{segments[0]["worker"]}}'s segment{{ loop.index }}&nbsp<label><input type="radio" name = "segment{{ loop.index }}" checked class="segment_checkbox" data-videoname="{{video_name}}" data-segmentid = "{{segment.id}}"><span></span></label></h5>
+                  {%else%}
+                  <h5 style="padding:5px">{{segments[0]["worker"]}}'s segment{{ loop.index }}&nbsp<label><input type="radio" name = "segment{{ loop.index }}" class="segment_checkbox" data-videoname="{{video_name}}" data-segmentid = "{{segment.id}}"><span></span></label></h5>
                   {%endif%}
-                  <td>{{error["reference"]}}</td>
-                  <td>
-                    <h4>
-                      <a onclick='mark_alert_box(this)'
-                        data-frame="{{error["start"]}}"
-                        data-alert="{{error["owner"]}}"
-                        class="segment_click segment_start">{{error["start"]}}</a>
-                      ➡
-                      <a onclick='mark_alert_box(this)'
-                        data-frame="{{error["end"]}}"
-                        data-alert="{{error["owner"]}}"
-                        class="segment_click">{{error["end"]}}</a>
-                    </h4>
-                  </td>
-                  <td>{{error["owner"]}}</td>
-
-                  <!-- following not working -->
-                  <td>
-                    {% for link in target_links %}
-                    {% if link[0].split("(")[0] == worker %}
-
-                    <a href="{{ link[1] }}{{error["start"]}}">
-                      Go to VATIC<br>
-                    </a>
-                    {% endif %}
-                    {% endfor %}
-                  </td>
-                  <!--td>{{ error }}</td-->
-                  <td>{{error["label"]}}</td>
-
-                  {%set error_id=[video_name, worker, error["reference"], error["box_id"], error["type"], error["start"], error["end"]]|join("\t")%}
-                  <td>
-                    <div class="checkbox">
-                      {%if error_id in check_boxes%}
-                        <label><input type="checkbox" class="error_checkbox" checked data-error="{{error_id}}" data-video={{video_name}} data-master={{worker}} data-reference={{error["reference"]}}  data-id={{error["box_id"]}} data-type={{error["type"]}} data-begin={{error["start"]}} data-end={{error["end"]}}></label>
-                      {%else%}
-                        <label><input type="checkbox" class="error_checkbox" data-error="{{error_id}}" data-video={{video_name}} data-master={{worker}} data-reference={{error["reference"]}}  data-id={{error["box_id"]}} data-type={{error["type"]}} data-begin={{error["start"]}} data-end={{error["end"]}}></label>
-                      {%endif%}
-                    </div>
-                  </td>
-                </tr>
-
-
-                {% endfor %}
-
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-
-
-             <!--  End of Groupped Erros Info -->
+                  {%  endfor %}
+               </div>
+               <div class="col-md-6" style="height:80%;margin-top:-10px;">
+                  <h3>user2</h3>
+                  <hr style="margin:0px">
+                  {%for segment in segments[1]["segment"]%}
+                  {%if segment.id|string in check_boxes_segment%}
+                  <h5 style="padding:5px">{{segments[1]["worker"]}}'s segment{{ loop.index }}&nbsp<label><input type="radio" checked name = "segment{{ loop.index }}" class="segment_checkbox" data-videoname="{{video_name}}" data-segmentid = "{{segment.id}}"><span></span></label></h5>
+                  {%else%}
+                  <h5 style="padding:5px">{{segments[1]["worker"]}}'s segment{{ loop.index }}&nbsp<label><input type="radio" name = "segment{{ loop.index }}" class="segment_checkbox" data-videoname="{{video_name}}" data-segmentid = "{{segment.id}}"><span></span></label></h5>
+                  {%endif%}
+                  {%  endfor %}
+               </div>
+            </div>
+            <button onclick="confirm_dump()" type="button" class="btn btn-default" style="margin:10px;margin-top:30px;">Dump</button>
+            <button name="close" type="button" class="btn btn-default" style="margin:10px;margin-top:30px">Close</button>
+         </div>
       </div>
-
-    </div>
-  </div>
-
-
-<!-- <img src="{{ url_for('video_frame', frame_number='0', video_name='jacksonhole.mp4') }}" alt="Smiley face" height="100" width="100"> -->
-</body>
+      <div id="dumped_video" class="popup container" style="height:600px;width:450px;left: calc(50% - 200px);">
+         <h2 style="margin-top:0px">Dumped Video</h2>
+         <h3 style="margin-top:0px">{{videos[0]}}</h3>
+         <div class="row" style="margin-top:10px;height:70%;overflow-y: scroll">
+            {%for admin_segment in admin_segment %}
+            <a href="http://172.16.22.51:8892/?id={{admin_segment["id"]}}&hitId=offline" style="font-size:18px">Admin's segment{{ loop.index }}</a>
+            <br>
+            {%  endfor %}
+         </div>
+         <button name="close" type="button" class="btn btn-default" style="margin:10px;margin-top:30px">Close</button>
+      </div>
+      <div class="container-fluid" id="body" >
+         <div class="row">
+            <div class="col-md-6" id="player" style="margin-top:-5px">
+               <h2><span class="label label-default"><strong>Frame:</strong> <strong id='frame-num'>{{frame_num}}</strong></span></h2>
+               <svg id="alert-svg" class="svg-content" frame-num="{{frame_num}}"
+                  viewBox="0 0 {{video_res.width}} {{video_res.height}}"
+                  preserveAspectRatio="xMinYMin meet" > </svg>
+               <!--  Control Buttons -->
+               <div id="seekbar-container">
+                  <input type="range" id="seekbar" class="seekbar" max="1" step="0.0000001" value="0" onchange="onchange_seekbar(this)" oninput="oninput_seekbar(this)">
+               </div>
+               <div id="buttons">
+                  <a id="previous-button"><button class="btn btn-success"> Previous <span class="glyphicon glyphicon-arrow-left"></span></button></a>
+                  <a id="next-button"><button class="btn btn-primary"> Next <span class="glyphicon glyphicon-arrow-right"></span></button></a>
+                  &nbsp;
+                  &nbsp;
+                  <a id="play-button"><button class="btn btn-danger"> Play <span class="glyphicon glyphicon-play"></span></button></a>
+                  <a id="stop-button"><button class="btn btn-warning"> Pause <span class="glyphicon glyphicon-pause"></span></button></a>
+                  <a id="rewind-button"><button class="btn btn-info"> Rewind <span class="glyphicon glyphicon-backward"></span></button></a>
+               </div>
+               <!--  End of Control Buttons -->
+               <!--  Alert Info -->
+               <!--  End of Alert Info -->
+            </div>
+            <div id="error-table">
+               <table class="table table-bordered">
+                  <thead>
+                     <tr>
+                        <th>Type</th>
+                        <th>Worker</th>
+                        <th>Frame</th>
+                        <th>Box No.</th>
+                        <th>Segment</th>
+                        <th>Category</th>
+                        <th>Status</th>
+                     </tr>
+                  </thead>
+                  <tbody>
+                     {% for worker in errors|sort %}
+                     {%for error in errors[worker]%}
+                     {% set box_id = error["owner"].split("_")[1] %}
+                     <tr data-worker="{{worker}}" data-box="{{box_id}}"
+                        data-id class = "error_entry">
+                        {% if error["type"] == "missing"%}
+                        <td><span class="label label-warning">少</span></td>
+                        {%elif error["type"] == "surplus"%}
+                        <td><span class="label label-info">多</span></td>
+                        {%else %}
+                        <td><span class="label label-primary ">非</span></td>
+                        {%endif%}
+                        <td>{{error["reference"]}}</td>
+                        <td>
+                           <h4>
+                              <a onclick='mark_alert_box(this)'
+                              data-frame="{{error["start"]}}"
+                              data-alert="{{error["owner"]}}"
+                              class="segment_click segment_start">{{error["start"]}}</a>
+                              ➡
+                              <a onclick='mark_alert_box(this)'
+                              data-frame="{{error["end"]}}"
+                              data-alert="{{error["owner"]}}"
+                              class="segment_click">{{error["end"]}}</a>
+                           </h4>
+                        </td>
+                        <td>{{error["owner"]}}</td>
+                        <!-- following not working -->
+                        <td>
+                           {% for link in target_links %}
+                           {% if link[0].split("(")[0] == worker %}
+                           <a href="{{ link[1] }}{{error["start"]}}">
+                           Go to VATIC<br>
+                           </a>
+                           {% endif %}
+                           {% endfor %}
+                        </td>
+                        <!--td>{{ error }}</td-->
+                        <td>{{error["label"]}}</td>
+                        {%set error_id=[video_name, worker, error["reference"], error["box_id"], error["type"], error["start"], error["end"]]|join("\t")%}
+                        <td>
+                           <div class="checkbox">
+                              {%if error_id in check_boxes%}
+                              <label><input type="checkbox" class="error_checkbox" checked data-error="{{error_id}}" data-video={{video_name}} data-master={{worker}} data-reference={{error["reference"]}}  data-id={{error["box_id"]}} data-type={{error["type"]}} data-begin={{error["start"]}} data-end={{error["end"]}}></label>
+                              {%else%}
+                              <label><input type="checkbox" class="error_checkbox" data-error="{{error_id}}" data-video={{video_name}} data-master={{worker}} data-reference={{error["reference"]}}  data-id={{error["box_id"]}} data-type={{error["type"]}} data-begin={{error["start"]}} data-end={{error["end"]}}></label>
+                              {%endif%}
+                           </div>
+                        </td>
+                     </tr>
+                     {% endfor %}
+                     {% endfor %}
+                  </tbody>
+               </table>
+            </div>
+            <!--  End of Groupped Erros Info -->
+         </div>
+      </div>
+      </div>
+      <!-- <img src="{{ url_for('video_frame', frame_number='0', video_name='jacksonhole.mp4') }}" alt="Smiley face" height="100" width="100"> -->
+   </body>
 </html>

@@ -15,7 +15,7 @@ import json
 from operator import itemgetter
 from itertools import groupby
 from collections import OrderedDict
-from tinydb import TinyDB, Query
+#from tinydb import TinyDB, Query
 from PIL import Image
 from annotation import Annotation
 from config import *
@@ -28,36 +28,19 @@ from time import gmtime, strftime
 import datetime
 import config
 
-
-
-
 #OLD functions thar are goging to deprecate
-
-
-
-
-
-
-
-
-
-
-
-
 parse_ID = lambda new_ID: new_ID.split("_")
-
-
 
 
 def frame_to_path(video_name, frame_num, img_path="vatic-docker/data/frames_in"):
     dir_A = str(int(frame_num / 10000))
     dir_B = str(int(frame_num / 100))
     path = os.path.join(img_path, video_name,  dir_A, dir_B, "{}.jpg".format(frame_num))
-    print(path)
     return path
 
+
 def get_color_map(workers):
-    colors = ["red", "green", "blue", "yellow", "white", "pink", "orange"]
+    colors = ["red", "green", "blue", "yellow", "white", "pink", "orange",'black','green','red','yellow']
     color_map = {}
 
     for i, worker in enumerate(sorted(workers)):
@@ -66,11 +49,8 @@ def get_color_map(workers):
     return color_map
 
 
-
-
 def get_img_url(video_name, frame_num, base_url = "/image"):
     return "{}?video_name={}&frame_num={}".format(base_url, video_name, frame_num)
-
 
 
 app = Flask(__name__)
@@ -83,50 +63,45 @@ app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://postgres:1111@localhost/bo
 
 db = SQLAlchemy(app)
 
-
-
+all_boxes = {}
 
 @app.route("/alert_boxes")
 def get_alert_boxes():
 
-
-
+    global all_boxes
     video = request.args['video']
-    frame = int(request.args['frame'])
-
     annotation = annotations[video]
-    alert = annotation.alerts.get(frame, {})
+    video_boxes = {}
+    if video in all_boxes:
+        video_boxes = all_boxes[video]
+    else:
+        for frame, alert in annotation.alerts.items():
 
+            isolations = alert.get("isolated", {})
+            unmatchings = alert.get("label-distinct", [])
 
-    isolations = alert.get("isolated", {})
-    unmatchings = alert.get("label-distinct", [])
+            alert_boxes_dict = {}
 
+            for path_ID in isolations:
+                box = annotation.paths[path_ID][frame]
+                alert_boxes_dict[path_ID] = box
 
-    alert_boxes_dict = {}
+            for path_ID_A,  path_ID_B in unmatchings:
+                box_A = annotation.paths[path_ID_A][frame]
+                box_B = annotation.paths[path_ID_B][frame]
+                alert_boxes_dict[path_ID_A] = box_A
+                alert_boxes_dict[path_ID_B] = box_B
+            alert_boxes = []
 
-    for path_ID in isolations:
-        box = annotation.paths[path_ID][frame]
-        alert_boxes_dict[path_ID] = box
+            for path_ID, box in alert_boxes_dict.items():
+                worker, box_id = parse_ID(path_ID)
+                box["source"] = worker
+                box["id"] = box_id
+                alert_boxes.append(box)
+            video_boxes[frame] = alert_boxes
+        all_boxes[video] = video_boxes
 
-
-    for path_ID_A,  path_ID_B in unmatchings:
-        box_A = annotation.paths[path_ID_A][frame]
-        box_B = annotation.paths[path_ID_B][frame]
-        alert_boxes_dict[path_ID_A] = box_A
-        alert_boxes_dict[path_ID_B] = box_B
-    alert_boxes = []
-
-    for path_ID, box in alert_boxes_dict.items():
-        worker, box_id = parse_ID(path_ID)
-        box["source"] = worker
-        box["id"] = box_id
-        alert_boxes.append(box)
-
-
-    return jsonify(alert_boxes)
-
-
-
+    return jsonify(video_boxes)
 
 
 #Create Static_root for Statistic files
@@ -136,7 +111,6 @@ def video_frame(frame_number,video_name):
     last_folder = int(frame_number)/100
     root = os.getcwd()
     path = root + '/vatic-docker/data/frames_in/' + video_name + '/0/' + str(last_folder)
-    print(path)
     return send_from_directory(path,filename)
 
 
@@ -152,7 +126,6 @@ def get_previous_frame(video_name, old_frame):
         return 0
 
 
-
 @app.route('/seek')
 def seek_frame():
     if request.method == 'GET':
@@ -163,14 +136,12 @@ def seek_frame():
     return jsonify(img_url=img_url, frame_num=target_frame, target_links=target_links)
 
 
-
 @app.route('/previous')
 def go_previous():
     if request.method == 'GET':
         video_name = request.args['video']
         current_frame = int(request.args['frame'])
         previous_frame = get_previous_frame(video_name, current_frame)
-
 
         img_url = get_img_url(video_name, previous_frame)
         target_links = get_target_links(video_name, previous_frame)
@@ -181,13 +152,11 @@ def go_previous():
 def go_next():
     if request.method == 'GET':
         video_name = request.args['video']
-        print(video_name)
         current_frame = int(request.args['frame'])
         next_frame = get_next_frame(video_name, current_frame)
         img_url = get_img_url(video_name, next_frame)
         target_links = get_target_links(video_name, next_frame)
     return jsonify(img_url=img_url, frame_num=next_frame, target_links=target_links)
-
 
 
 @app.route('/update')
@@ -211,13 +180,12 @@ def multiclass_filter():
 def set_assignment(video):
 
     global annotations
-    annotations = {video: Annotation(assignment, video_obj) for video_obj, assignment in assignments.items() if video_obj == video}
-
+    assignments = get_assignments(user_map)
+    annotations[video] = Annotation(assignments[video], video)
 
 @app.route('/')
 def index():
 
-    #global check_box_DB
     global annotations
     videos = get_videos(user_map)
 
@@ -225,35 +193,36 @@ def index():
         video = request.args['video_name']
         videos.remove(video)
         videos.insert(0, video)
-        #user_name = session.query(User).first().username
-
-
     else:
         video = videos[0]
 
+    # calculate segment length
     cur_video = session.query(Video).filter(Video.slug.contains(video)).first()
     first_segment = session.query(Segment).filter(Segment.videoid == cur_video.id).first()
     config.K_FRAME = int(first_segment.stop - 21 - first_segment.start)
-        #user_name = session.query(User).first().username
+
+    # load annotation information and cache it
     if video not in annotations.keys():
         set_assignment(video)
-    #annotations = {video: Annotation(assignment, video_obj) for video_obj, assignment in assignments.items() if video_obj == video}
-
 
     segments = []
     frame_num = 0
     img_url = get_img_url(video, frame_num)
     annotation = annotations[video]
 
+
     for worker in annotation.workers:
         worker_video = session.query(Video).filter(Video.slug == worker + '_' + video).first()
         segment = session.query(Segment).filter(Segment.videoid == worker_video.id)
         segments.append({'worker': worker, "segment": segment})
-        video_obj = session.query(Video).filter(Video.slug == worker + '_' + video).first()
-        video_res = {'height':video_obj.height,'width':video_obj.width}
+
+    if len(annotation.workers) == 1:
+        segments.append({'worker':'','segment':[]})
+
+    # get resolution of video
+    video_res = {'height':worker_video.height,'width':worker_video.width}
 
     target_links = get_target_links(video, frame_num)
-    #target = {}
 
     check_boxes = {}
     checkbox_errors = error_checkbox.query.all()
@@ -264,14 +233,11 @@ def index():
                 str(checkbox.error_begin) + '\t' + str(checkbox.error_end)
         check_boxes[error] = 1
 
-
-
     #{u'A2Streetnight.mp4\tSponge\tSpooky\tsurplus\t0\t66': 1, u'A2Streetnight.mp4\tSponge\tSpooky\tsurplus\t0\t59': 1, u'A2Streetnight.mp4\tSponge\tpwan\tsurplus\t0\t59': 1}
     check_boxes_segment = {}
     for error_data in check_box_DB_segment.all():
         segment_id = error_data["segment_id"]
         check_boxes_segment[segment_id] = 1
-
 
     admin_video = session.query(Video).filter(Video.user_id == 'max.hsu@ironyun.com', Video.slug == 'Max_'+video).order_by(desc(Video.id)).first()
 
@@ -287,13 +253,12 @@ def index():
         segments = segments, admin_segment = admin_segment)
 
 
-
 @app.route('/users')
 def user_manage():
 
     users = session.query(User).all()
-
     return render_template('user.html', users=users, vatic=VATIC_ADDRESS)
+
 
 @app.route('/frames', methods=['GET'])
 def get_frame():
@@ -304,23 +269,15 @@ def get_frame():
 
     frames = {}
 
-
     alerts = annotations[video_name].alerts
     for frame_key in annotations[video_name].alerts:
-    #frame_key = 0
-    #while True:
-
         frames[frame_key] = {}
         frame = frames[frame_key]
         #frame["alert"] = alert_frames[frame_key]
-        #What is this?
-
         #frame["alert"] = []
         frame["frame_num"] = frame_key
         frame["img_url"] = get_img_url(video_name, frame_key)
         frame["target_links"] = get_target_links(video_name, frame_key)
-#
-        #  break;
 
     if len(frames)==0:
         frame_key = 0
@@ -332,14 +289,8 @@ def get_frame():
         frame["img_url"] = get_img_url(video_name, frame_key)
         frame["target_links"] = get_target_links(video_name, frame_key)
 
-
     response_data = {"success": True, "data": frames}
     return jsonify(response_data)
-
-
-
-
-
 
 
 from checkbox_models import error_checkbox,segment_checkbox
@@ -408,9 +359,6 @@ def dump_segment():
         create_admin_video(video_name=video)
 
         return jsonify(condition="successfully dump segments")
-
-
-
 
 
 def get_annotations():
@@ -499,11 +447,7 @@ def verify_email_input():
 
 @app.route('/reset')
 def reset_password():
-
-
-
     if not request.remote_addr in ALLOW_IP:
-
         message = "not allow to use this function"
         return render_template("forget_message.html", info=message)
     mail = request.args.get('mail')
@@ -578,22 +522,28 @@ def reset_input():
 
 
 if __name__ == "__main__":
-    #dump_user_map()
-    EXT_ADDR = os.environ.get('EXTERNAL_ADDRESS')
 
+    EXT_ADDR = os.environ.get('EXTERNAL_ADDRESS')
     if EXT_ADDR == None:
         EXT_ADDR = "172.16.22.51"
     VATIC_ADDRESS = "http://"+EXT_ADDR+":8892"
-    DUMP_TXT_DATA()
+
+
+    #DUMP_TXT_DATA()
+    # initialize data information
+    dump_user_map()
     user_map = get_user_map()
     assignments = get_assignments(user_map)
 
+    # initialize first assignment
     annotations = {}
+    video = get_videos(user_map)[0]
+    annotations[video] = Annotation(assignments[video], video)
     #annotations = {video: Annotation(assignment, video) for video, assignment in assignments.items()}
-
 
     workers = get_workers(user_map)
     color_map = get_color_map(workers)
+
     check_box_DB =  TinyDB("check_box_db.json")
     check_box_DB_segment = TinyDB("check_box_db_segment.json")
     app.run(host='0.0.0.0',debug=DEBUG,threaded=False, port=PORT)

@@ -2,7 +2,7 @@
 from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, LargeBinary, String, Table, Text, text, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
-
+import vision
 
 Base = declarative_base()
 metadata = Base.metadata
@@ -45,7 +45,11 @@ class Box(Base):
     occluded = Column(Integer)
     outside = Column(Integer)
 
-    path = relationship(u'Path')
+    path = relationship(u'Path', backref = "boxes")
+
+    def getbox(self):
+        return vision.Box(self.xtl, self.ytl, self.xbr, self.ybr,
+                          self.frame, self.outside, self.occluded, 0)
 
 
 t_boxes2attributes = Table(
@@ -62,7 +66,7 @@ class Label(Base):
     text = Column(String(250))
     videoid = Column(ForeignKey(u'videos.id'), index=True)
 
-    video = relationship(u'Video')
+    video = relationship(u'Video', backref = 'labels')
 
 
 class Path(Base):
@@ -72,8 +76,57 @@ class Path(Base):
     jobid = Column(ForeignKey(u'jobs.id'), index=True)
     labelid = Column(ForeignKey(u'labels.id'), index=True)
 
-    job = relationship(u'Job')
-    label = relationship(u'Label')
+    job = relationship(u'Job', backref = 'paths')
+    label = relationship(u'Label', backref = 'paths')
+
+    interpolatecache = None
+
+    def getboxes(self, interpolate = False, bind = False, label = False):
+        result = [x.getbox() for x in self.boxes]
+        result.sort(key = lambda x: x.frame)
+        if interpolate:
+            if not self.interpolatecache:
+                self.interpolatecache = LinearFill(result)
+            result = self.interpolatecache
+
+        if bind:
+            result = Path.bindattributes(self.attributes, result)
+
+        if label:
+            for box in result:
+                box.attributes.insert(0, self.label.text)
+
+        return result
+
+    @classmethod
+    def bindattributes(cls, attributes, boxes):
+        attributes = sorted(attributes, key = lambda x: x.frame)
+
+        byid = {}
+        for attribute in attributes:
+            if attribute.attributeid not in byid:
+                byid[attribute.attributeid] = []
+            byid[attribute.attributeid].append(attribute)
+
+        for attributes in byid.values():
+            for prev, cur in zip(attributes, attributes[1:]):
+                if prev.value:
+                    for box in boxes:
+                        if prev.frame <= box.frame < cur.frame:
+                            if prev.attribute not in box.attributes:
+                                box.attributes.append(prev.attribute)
+            last = attributes[-1]
+            if last.value:
+                for box in boxes:
+                    if last.frame <= box.frame:
+                        if last.attribute not in box.attributes:
+                            box.attributes.append(last.attribute)
+
+        return boxes
+
+    def __repr__(self):
+        return "<Path {0}>".format(self.id)
+
 
 
 class Segment(Base):
@@ -84,7 +137,15 @@ class Segment(Base):
     start = Column(Integer)
     stop = Column(Integer)
 
-    video = relationship(u'Video')
+    video = relationship(u'Video', backref = 'segments')
+
+    @property
+    def paths(self):
+        paths = []
+        for job in self.jobs:
+            if job.useful:
+                paths.extend(job.paths)
+        return paths
 
 
 class TurkicBonusSchedule(Base):
@@ -186,7 +247,7 @@ class Job(TurkicHit):
     segmentid = Column(ForeignKey(u'segments.id'), index=True)
     istraining = Column(Integer)
 
-    segment = relationship(u'Segment')
+    segment = relationship(u'Segment', backref = 'jobs')
 
 
 class TurkicWorker(Base):
@@ -213,6 +274,8 @@ class User(Base):
     forgetPasswordToken = Column(String(50), nullable=True, default = None)
     forgetPasswordTokenExpireTime = Column(DateTime, nullable=True, default=None)
 
+    video = relationship('Video')
+
 
 class Video(Base):
     __tablename__ = 'videos'
@@ -232,5 +295,41 @@ class Video(Base):
     blowradius = Column(Integer)
     user_id = Column(ForeignKey(u'users.id'), nullable=False, index=True)
 
-    parent = relationship(u'Video', remote_side=[id])
-    user = relationship(u'User')
+    user = relationship("User", backref = 'videos')
+
+    def __getitem__(self, frame):
+        path = Video.getframepath(frame, self.location)
+        return Image.open(path)
+
+    @classmethod
+    def getframepath(cls, frame, base = None):
+        l1 = frame / 10000
+        l2 = frame / 100
+        path = "{0}/{1}/{2}.jpg".format(l1, l2, frame)
+        if base is not None:
+            path = "{0}/{1}".format(base, path)
+        return path
+
+    @property
+    def cost(self):
+        cost = 0
+        for segment in self.segments:
+            cost += segment.cost
+        return cost
+
+    @property
+    def numjobs(self):
+        count = 0
+        for segment in self.segments:
+            for job in segment.jobs:
+                count += 1
+        return count
+
+    @property
+    def numcompleted(self):
+        count = 0
+        for segment in self.segments:
+            for job in segment.jobs:
+                if job.completed:
+                    count += 1
+        return count

@@ -13,13 +13,19 @@ class Annotation():
 
     #Max would change this and connects to SQLALCHEMY
     def _load_boxes(self):
-        return {worker: parse_txt(box_file) for worker, box_file in self.assignments.items()}
+        for worker, box_file in self.assignments.items():
+            if self.video not in box_file:
+                continue
+            else:
+                self._boxes[worker] = parse_txt(box_file)
+
+        #return {worker: parse_txt(box_file) for worker, box_file in self.assignments.items()}
 
 
     #Max would change this and connects to SQLALCHEMY
     def update(self):
         DUMP_TXT_DATA(self.video)
-        self._boxes = self._load_boxes()
+        self._load_boxes()
         self.boxes = self._boxes.copy()
         self.paths = get_paths(self.boxes)
         self.alerts = get_alerts(self.boxes, self.paths)
@@ -27,18 +33,21 @@ class Annotation():
 
 
     def __init__(self, assignments, video):
+
         self.assignments = assignments
         self.video = video
         self.workers = self._load_workers()
-        self._boxes = self._load_boxes()
-        #Filtered boxes
+
+        self._boxes = {}
+        self._load_boxes()
         self.boxes = self._boxes.copy()
+
         self.paths = get_paths(self.boxes)
         self.alerts = get_alerts(self.boxes, self.paths)
         self.errors = get_errors(self.workers, self.alerts, self.paths)
 
     def filter(self, selected_labels):
-        print("Start to Filter")
+        print("[Debug Message]: Start to Filter")
         if "all" in selected_labels :
             self.boxes = self._boxes.copy()
         else:
@@ -59,7 +68,6 @@ class Annotation():
                         if frame not in filtered_boxes[worker]:
                             filtered_boxes[worker][frame] = {}
                         filtered_boxes[worker][frame][box_id] = box
-        print(filtered_boxes)
         return filtered_boxes
 
 
@@ -118,10 +126,6 @@ def get_errors(workers, alerts, paths):
                 errors[worker_B].append(error_B)
 
 
-
-
-
-
     parse_ID = lambda new_ID: new_ID.split("_")
     compose_ID = lambda worker, box_ID: "{}_{}".format(worker, box_ID)
     flatten = lambda l: [item for sublist in l for item in sublist]
@@ -147,12 +151,8 @@ def get_errors(workers, alerts, paths):
 
     error_IDs = pop_hash.add_and_pop(frame + 1, [])
     update_error(error_IDs)
-    print("Errors Loaded")
+    print("[Debug Message]: Errors Loaded")
     return {worker: sorted(errors[worker], key=lambda x: x["start"]) for worker in workers}
-
-
-
-
 
 
 def get_paths(boxes):
@@ -160,7 +160,6 @@ def get_paths(boxes):
     frames = boxes.values()[0].keys()
     for frame in frames:
         IOU_map = get_IOU_map(boxes, frame)
-        #print(IOU_map)
         for worker_A in IOU_map:
             for box_id_A in IOU_map[worker_A]:
                 box_A = boxes[worker_A][frame][box_id_A].copy()
@@ -169,10 +168,8 @@ def get_paths(boxes):
                 if new_box_id_A not in paths:
                     paths[new_box_id_A] = {}
                 paths[new_box_id_A][frame] = box_A
-    print("Paths Loaded")
+    print("[Debug Message]: Paths Loaded")
     return paths
-
-
 
 
 def get_alerts(boxes, paths, IOU_min=0.5):
@@ -190,10 +187,7 @@ def get_alerts(boxes, paths, IOU_min=0.5):
     def label_equal(box_ID_A, box_ID_B):
         label_A = paths[box_ID_A][frame]["label"]
         label_B = paths[box_ID_B][frame]["label"]
-        #print(box_ID_A,label_A, box_ID_B,label_B)
         return label_A == label_B
-
-
 
     alerts = {}
     workers = boxes.keys()
@@ -222,9 +216,8 @@ def get_alerts(boxes, paths, IOU_min=0.5):
                     alert["label-distinct"].add(unmatch_pair)
         alert["label-distinct"] = list(alert["label-distinct"])
         alerts[frame] = alert
-    print("Alerts Loaded")
+    print("[Debug Message]: Alerts Loaded")
     return alerts
-
 
 
 #Read the bboxes txt file and return a dictionary
@@ -262,7 +255,7 @@ def parse_txt(file="sample_output.txt", selected_class=["all"]):
         if frame not in annotations:
             annotations[frame] = {}
         annotations[frame][objID] = bbox
-    print("Bboxes Loaded")
+    print("[Debug Message]: Bboxes Loaded")
     return annotations
 
 

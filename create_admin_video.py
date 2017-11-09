@@ -6,16 +6,14 @@ from branch_dependent_utils import *
 from admin_server import *
 from sqlalchemy.sql import func
 from subprocess import call
-from create_video import *
 import time
 from config import *
 
-def load_admin_video(video_name,labels):
 
+def load_admin_video(video_name,labels):
 
     ANNOTATEDFRAMEPATH= "/root/vatic/data/frames_in/" + video_name
     slug = ADMIN_NAME + '_' + video_name
-
 
     TURKOPS="--offline --title Hello!"
     vatic_path = "/root/vatic"
@@ -50,7 +48,6 @@ def create_admin_video(admin_name = "Max",video_name="jacksonhole.mp4"):
     labels = ""
     for sample_label in sample_labels:
         labels = labels + sample_label.text + " "
-    print labels
     load_admin_video(video_name,labels)
     session.commit()
 
@@ -79,13 +76,10 @@ def create_admin_video(admin_name = "Max",video_name="jacksonhole.mp4"):
                 session.expunge(path)
                 make_transient(path)
                 max_path_id = session.query(func.max(Path.id).label("max_id")).one()
-                print(target_job.id)
                 path.id = max_path_id.max_id + 1
                 path.jobid = target_job.id
                 label_text = session.query(Label).filter(Label.id == path.labelid).first().text
-                print(label_text)
                 label = session.query(Label).filter(Label.videoid == target_video.id, Label.text == label_text).first().id
-                print(label)
                 path.labelid = label
 
                 new_path = Path(id = max_path_id.max_id + 1, jobid = target_job.id, labelid = label)
@@ -106,21 +100,26 @@ def create_admin_video(admin_name = "Max",video_name="jacksonhole.mp4"):
                     session.add(box)
                     session.commit()
 
+def create_admin_video_entry(video_name,labels):
+
+    ADMIN_NAME = 'Max'
+    userid = 'max.hsu@ironyun.com'
+    ANNOTATEDFRAMEPATH= "/root/vatic/data/frames_in/" + video_name
+    slug = ADMIN_NAME + '_' + video_name
 
 
+    TURKOPS="--offline --title Hello!"
+    vatic_path = "/root/vatic"
 
-
-
-
-
-
-    #create video object for admin
-
-
-
+    delete_cmd = "cd {}; turkic delete {}".format(vatic_path,slug)
+    create_cmd = "cd {}; turkic load {} {} {} {} {}".format(vatic_path,slug, user_id ,ANNOTATEDFRAMEPATH, labels, TURKOPS)
+    cmd = ['docker', 'exec', CONTAINER_NAME, "/bin/bash", '-c', delete_cmd]
+    call(cmd)
+    cmd = ['docker', 'exec', CONTAINER_NAME, "/bin/bash", '-c', create_cmd]
+    print(" ".join(cmd))
+    call(cmd)
 
 
 
 if __name__ == "__main__":
-
     create_admin_video()
